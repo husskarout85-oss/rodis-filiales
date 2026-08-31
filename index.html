@@ -2396,8 +2396,8 @@ const I18N = {
     creditOutstandingEdit:"Update current outstanding",
     notesTitle:"Notes & comments", notesPlaceholder:"Log context on this subsidiary's progress — visible to everyone with access…",
     yourName:"Your name (optional, shown with updates)",
-    accessReadOnly:"You're viewing in read-only mode. Enter the edit passcode on the Access tab to unlock data entry on this device.",
-    accessNote:"Data you enter here is live for everyone within a few seconds — no saving or refreshing needed on their end. Anyone with this link can view; ask the dashboard owner for the edit passcode (Access tab) if you need to enter data.",
+    accessReadOnly:"You have view access to this subsidiary. Ask your admin for data-entry access if you need to update figures.",
+    accessNote:"Data you enter here is live for everyone within a few seconds — no saving or refreshing needed on their end.",
     monthShort:"Month {n}",
     footerNote:"Built from the 6 validated Year‑1 subsidiary plans, updated August 2026.",
     lastUpdated:"Last updated", by:"by",
@@ -2408,16 +2408,28 @@ const I18N = {
     permErr:"You need edit access on this page to save changes.",
     dbUnavailable:"Live data isn't connected yet — figures below are read-only until the dashboard owner finishes the one-time setup.",
     hierarchy:"Financial detail",
-    tabAdmin:"Access",
+    tabAdmin:"Admin",
     yourNamePlaceholder:"Your name",
     liveBadge:"Live", readOnlyBadge:"View only", previewBadge:"Not connected",
-    adminTitle:"Access",
-    adminSub:"Anyone with this link can view the dashboard. Entering the shared edit passcode below unlocks data entry on this device — ask the dashboard owner for it if you don't have it.",
+    loginTitle:"Sign in", loginSub:"Enter the username and password you were given to access this dashboard.",
+    loginUsername:"Username", loginPassword:"Password", loginBtn:"Sign in", loginError:"Incorrect username or password.",
+    logout:"Log out", loggedInAs:"Signed in as",
+    roleAdmin:"Admin", roleUser:"User",
+    noAccess:"You don't have access to this subsidiary. Ask your admin to grant you view or data-entry access.",
+    adminTitle:"Admin — users & access",
+    adminSub:"Create accounts and control, per subsidiary, who can view or enter data. Changes apply immediately for everyone, and are enforced by the server — not just by this page.",
+    adminUsers:"Users", adminAddUser:"Add user", adminUsername:"Username", adminName:"Display name", adminPassword:"Password",
+    adminRole:"Role", adminAccessPerFiliale:"Access per subsidiary", adminSave:"Save", adminDelete:"Delete",
+    adminResetPwd:"Reset password", adminNewPwd:"New password",
+    accessNone:"No access", accessView:"View", accessEntry:"Data entry",
     adminActivity:"Recent activity", adminNoActivity:"No activity yet.",
-    shareNote:"To share this dashboard: send this page's link to anyone who should view it. To let someone enter data too, also give them the edit passcode below — they enter it once on the Access tab and it's remembered on their device from then on.",
+    adminSecurityNote:"Change the default admin password (above) as soon as you can. Passwords are checked on the server, not just in this page — but they aren't encrypted at rest in the spreadsheet, so treat this like a shared team login, not a bank vault.",
+    shareNote:"To share this dashboard: send anyone the page link — they'll need an account (created below) to sign in and see anything. Give the Admin role only to people who should manage users; give everyone else data-entry or view access on just the subsidiaries they need.",
     savingErr:"Couldn't save — check your connection and try again.",
-    writeBlocked:"Your change wasn't saved. Enter the edit passcode on the Access tab (ask the dashboard owner for it) to unlock data entry on this device.",
-    editPasscodeLabel:"Edit passcode", editPasscodeBtn:"Unlock editing", editPasscodeSet:"Saved on this device.",
+    writeBlocked:"That didn't save — you don't have data-entry access to this subsidiary. Ask your admin to grant it.",
+    userAdded:"User added.", userUpdated:"User updated.", userDeleted:"User deleted.", cannotDeleteSelf:"You can't delete your own account while signed in.",
+    usernameTaken:"That username is already taken.",
+    fillRequired:"Username and password are required.",
   },
   fr: {
     appName:"Rodis", appSub:"Plans filiales — Année 1",
@@ -2456,8 +2468,8 @@ const I18N = {
     creditOutstandingEdit:"Mettre à jour l'encours actuel",
     notesTitle:"Notes & commentaires", notesPlaceholder:"Consignez le contexte sur l'avancement de cette filiale — visible par tous les accès…",
     yourName:"Votre nom (facultatif, affiché avec vos mises à jour)",
-    accessReadOnly:"Vous consultez en lecture seule. Saisissez le mot de passe de modification dans l'onglet Accès pour activer la saisie sur cet appareil.",
-    accessNote:"Ce que vous saisissez ici est visible en direct par tout le monde en quelques secondes — sans avoir besoin d'enregistrer ou d'actualiser. Toute personne ayant ce lien peut consulter ; demandez au propriétaire le mot de passe de modification (onglet Accès) si vous devez saisir des données.",
+    accessReadOnly:"Vous avez un accès en lecture à cette filiale. Demandez à votre administrateur un accès en saisie pour mettre à jour les chiffres.",
+    accessNote:"Ce que vous saisissez ici est visible en direct par tout le monde en quelques secondes — sans avoir besoin d'enregistrer ou d'actualiser.",
     monthShort:"Mois {n}",
     footerNote:"Construit à partir des 6 plans filiales Année 1 validés, mis à jour en août 2026.",
     lastUpdated:"Dernière mise à jour", by:"par",
@@ -2468,16 +2480,28 @@ const I18N = {
     permErr:"Un accès en modification à cette page est nécessaire pour enregistrer.",
     dbUnavailable:"Les données en direct ne sont pas encore connectées — les chiffres ci-dessous sont en lecture seule tant que le propriétaire n'a pas terminé la configuration initiale.",
     hierarchy:"Détail financier",
-    tabAdmin:"Accès",
+    tabAdmin:"Admin",
     yourNamePlaceholder:"Votre nom",
     liveBadge:"En direct", readOnlyBadge:"Lecture seule", previewBadge:"Non connecté",
-    adminTitle:"Accès",
-    adminSub:"Toute personne ayant ce lien peut consulter le tableau de bord. Saisir le mot de passe de modification partagé ci-dessous active la saisie sur cet appareil — demandez-le au propriétaire du tableau de bord si vous ne l'avez pas.",
+    loginTitle:"Connexion", loginSub:"Saisissez l'identifiant et le mot de passe qui vous ont été communiqués pour accéder à ce tableau de bord.",
+    loginUsername:"Identifiant", loginPassword:"Mot de passe", loginBtn:"Se connecter", loginError:"Identifiant ou mot de passe incorrect.",
+    logout:"Se déconnecter", loggedInAs:"Connecté en tant que",
+    roleAdmin:"Admin", roleUser:"Utilisateur",
+    noAccess:"Vous n'avez pas accès à cette filiale. Demandez à votre administrateur un accès en lecture ou en saisie.",
+    adminTitle:"Admin — utilisateurs & accès",
+    adminSub:"Créez des comptes et contrôlez, filiale par filiale, qui peut consulter ou saisir des données. Les changements s'appliquent immédiatement pour tout le monde, et sont vérifiés par le serveur — pas seulement par cette page.",
+    adminUsers:"Utilisateurs", adminAddUser:"Ajouter un utilisateur", adminUsername:"Identifiant", adminName:"Nom affiché", adminPassword:"Mot de passe",
+    adminRole:"Rôle", adminAccessPerFiliale:"Accès par filiale", adminSave:"Enregistrer", adminDelete:"Supprimer",
+    adminResetPwd:"Réinitialiser le mot de passe", adminNewPwd:"Nouveau mot de passe",
+    accessNone:"Aucun accès", accessView:"Lecture", accessEntry:"Saisie",
     adminActivity:"Activité récente", adminNoActivity:"Aucune activité pour le moment.",
-    shareNote:"Pour partager ce tableau de bord : transmettez le lien de cette page à qui doit le consulter. Pour permettre aussi la saisie, transmettez également le mot de passe de modification ci-dessous — la personne le saisit une fois dans l'onglet Accès, il est ensuite mémorisé sur son appareil.",
+    adminSecurityNote:"Changez le mot de passe admin par défaut (ci-dessus) dès que possible. Les mots de passe sont vérifiés côté serveur, pas seulement dans cette page — mais ils ne sont pas chiffrés dans la feuille de calcul, donc traitez ceci comme un identifiant d'équipe partagé, pas un coffre-fort bancaire.",
+    shareNote:"Pour partager ce tableau de bord : transmettez le lien de la page — chacun aura besoin d'un compte (créé ci-dessous) pour se connecter et voir quoi que ce soit. Réservez le rôle Admin aux personnes qui doivent gérer les utilisateurs ; donnez aux autres un accès en saisie ou en lecture uniquement sur les filiales dont ils ont besoin.",
     savingErr:"Échec de l'enregistrement — vérifiez votre connexion et réessayez.",
-    writeBlocked:"Votre modification n'a pas été enregistrée. Saisissez le mot de passe de modification dans l'onglet Accès (demandez-le au propriétaire) pour activer la saisie sur cet appareil.",
-    editPasscodeLabel:"Mot de passe de modification", editPasscodeBtn:"Activer la saisie", editPasscodeSet:"Enregistré sur cet appareil.",
+    writeBlocked:"Non enregistré — vous n'avez pas d'accès en saisie sur cette filiale. Demandez-le à votre administrateur.",
+    userAdded:"Utilisateur ajouté.", userUpdated:"Utilisateur mis à jour.", userDeleted:"Utilisateur supprimé.", cannotDeleteSelf:"Vous ne pouvez pas supprimer votre propre compte pendant que vous êtes connecté.",
+    usernameTaken:"Cet identifiant est déjà utilisé.",
+    fillRequired:"L'identifiant et le mot de passe sont obligatoires.",
   }
 };
 function t(k){ const s=(I18N[STATE.lang]&&I18N[STATE.lang][k]) || I18N.en[k] || k; return s; }
@@ -2496,11 +2520,13 @@ function saveLocal(key, val){ try{ localStorage.setItem(key,val); }catch(e){} }
 // Shared live state — populated from the `db` capability once it resolves.
 // Never persisted inside the page itself; RUNTIME_DEFAULTS is just the shape
 // used before the first snapshot arrives (or when db is unavailable).
-function runtimeDefaults(){ return { actuals:{}, creditline:{}, recruitment:{}, notes:{}, activity:[] }; }
+function runtimeDefaults(){ return { users:[], actuals:{}, creditline:{}, recruitment:{}, notes:{}, activity:[] }; }
 let RUNTIME = runtimeDefaults();
 function mergeRuntime(data){
   const d = data || {};
+  const prevUsers = RUNTIME.users || []; // doGet never returns users — keep whatever admin fetched separately
   RUNTIME = {
+    users: prevUsers,
     actuals: d.actuals || {},
     creditline: d.creditline || {},
     recruitment: d.recruitment || {},
@@ -2509,14 +2535,18 @@ function mergeRuntime(data){
   };
 }
 
+function loadUserJson(key){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }catch(e){ return null; }
+}
+function saveUserJson(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+
 const STATE = {
   lang: loadLocal('rodis_lang','en'),
   view: 'overview', // 'overview' | filialeId | 'admin'
-  myName: loadLocal('rodis_name',''),
-  editCode: loadLocal('rodis_editcode',''),
+  currentUser: loadUserJson('rodis_user'), // {id, username, name, role, filiales}
+  myPassword: loadLocal('rodis_pw',''),    // kept locally to re-authenticate writes/admin calls
   dbReady: false,   // the backend responded at least once
   dbLoaded: false,  // first payload has arrived
-  readOnly: false,  // flips true once a write is rejected for a wrong/missing passcode
   syncing: false,
 };
 
@@ -2524,19 +2554,22 @@ const CURRENCY_LABEL = { NGN:'NGN', XOF:'FCFA', XAF:'FCFA' };
 
 /* =========================================================================
    ACCESS
-   Who can open this page at all, and who can edit vs. only view, is decided
-   entirely by Claude's own sharing on this artifact (its share menu) — not
-   by anything in this file. There's no separate username/password. We can't
-   ask "what's my access level" up front, so every viewer sees every
-   subsidiary and every input starts enabled; a write that the platform
-   rejects for lack of edit access flips the page into a visible
-   read-only state (see persist()).
+   Real per-person accounts, enforced server-side (see Code.gs): every
+   write and every admin action is checked there against the signed-in
+   user's role and per-subsidiary access — this page's own gating is
+   just what makes the UI match what the server will actually allow.
    ========================================================================= */
-function canView(_filialeId){ return true; }
-function canEdit(_filialeId){ return STATE.dbReady && !STATE.readOnly; }
-function accessibleFiliales(){ return FILIALE_ORDER; }
+function isAdmin(){ return !!(STATE.currentUser && STATE.currentUser.role==='admin'); }
+function filialeAccess(filialeId){
+  if(!STATE.currentUser) return 'none';
+  if(STATE.currentUser.role==='admin') return 'entry';
+  return (STATE.currentUser.filiales && STATE.currentUser.filiales[filialeId]) || 'none';
+}
+function canView(filialeId){ return filialeAccess(filialeId)!=='none'; }
+function canEdit(filialeId){ return filialeAccess(filialeId)==='entry'; }
+function accessibleFiliales(){ return FILIALE_ORDER.filter(id=>canView(id)); }
 function currentName(){
-  return STATE.myName || (STATE.lang==='fr'?'Anonyme':'Anonymous');
+  return (STATE.currentUser && (STATE.currentUser.name||STATE.currentUser.username)) || (STATE.lang==='fr'?'Anonyme':'Anonymous');
 }
 
 /* =========================================================================
@@ -2625,11 +2658,10 @@ function toast(msg, isErr){
    LIVE DATA WIRING (Google Apps Script backend)
    All shared state (actuals, credit lines, recruitment status, notes,
    activity log) lives as one JSON blob behind a small Apps Script Web
-   App, backed by a Google Sheet. Every open tab polls it on an interval
-   and re-renders on change — including changes made by other people.
-   Anyone with the page link can view; a write must carry the shared
-   edit passcode (checked server-side in Code.gs) or it's rejected —
-   persist() surfaces that as a read-only state.
+   App, backed by a Google Sheet — read openly (doGet), written only by a
+   signed-in account with data-entry access to the specific subsidiary
+   being changed (checked server-side in Code.gs). Every open tab polls
+   the shared figures on an interval and re-renders on change.
    ========================================================================= */
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyBHCaS5ylmAgZ-v6jomwbahGXHWlXngjSnkt9aEqEAdPeYDYq3rnoBF9jO8vSH-8qexw/exec'; // Apps Script /exec URL, baked in at build time
 const POLL_MS = 6000;
@@ -2642,6 +2674,11 @@ function userIsTyping(){
   const el = document.activeElement;
   const tag = el && el.tagName;
   return tag==='INPUT' || tag==='TEXTAREA' || tag==='SELECT';
+}
+
+async function gasCall(body){
+  const res = await fetch(GAS_URL, { method:'POST', body: JSON.stringify(body) });
+  return res.json();
 }
 
 async function initRemote(){
@@ -2661,8 +2698,8 @@ async function pollOnce(){
     if(str === lastRemoteStr) return; // nothing changed remotely — don't touch the DOM
     lastRemoteStr = str;
     mergeRuntime(data);
-    // never blow away an in-progress edit (passcode field, a number being
-    // typed, notes, ...) just because a background poll landed
+    // never blow away an in-progress edit (a field being typed, the login
+    // form, ...) just because a background poll landed
     if(!userIsTyping()) render();
   }catch(e){
     // background poll failure — keep showing the last known data rather
@@ -2677,24 +2714,20 @@ function pushActivity(action, detail){
   if(RUNTIME.activity.length>80) RUNTIME.activity.length=80;
 }
 
-async function persist(){
+async function persist(filialeId){
   if(!gasConfigured()){ toast(t('dbUnavailable'), true); return false; }
   STATE.syncing = true;
   try{
-    const res = await fetch(GAS_URL, {
-      method:'POST',
-      body: JSON.stringify({ passcode: STATE.editCode||'', data: RUNTIME }),
+    const out = await gasCall({
+      type:'data', filialeId,
+      username: STATE.currentUser && STATE.currentUser.username, password: STATE.myPassword,
+      data: RUNTIME,
     });
-    const out = await res.json();
     STATE.syncing = false;
     if(!out || !out.ok){
-      // wrong/missing edit passcode — flip into a visible read-only state
-      STATE.readOnly = true;
       toast(t('writeBlocked'), true);
-      render();
       return false;
     }
-    STATE.readOnly = false;
     lastRemoteStr = JSON.stringify(RUNTIME); // this write is now the known-current state
     toast(t('savedNote'), false);
     return true;
@@ -2705,16 +2738,6 @@ async function persist(){
   }
 }
 
-/* ---------- edit passcode (unlocks data entry on this device) ---------- */
-function setEditCode(code){
-  STATE.editCode = (code||'').trim();
-  saveLocal('rodis_editcode', STATE.editCode);
-  STATE.readOnly = false; // optimistic — the next save confirms or reverts this
-  toast(t('editPasscodeSet'), false);
-  render();
-}
-window.setEditCode = setEditCode;
-
 async function saveActual(filialeId, monthKey, cartonsVal, revenueVal){
   if(!canEdit(filialeId)) return;
   const cartons = cartonsVal===''||cartonsVal===undefined ? null : Number(cartonsVal);
@@ -2723,7 +2746,7 @@ async function saveActual(filialeId, monthKey, cartonsVal, revenueVal){
   RUNTIME.actuals[key] = { cartonsActual: cartons, revenueActual: revenue, updatedAt:new Date().toISOString(), updatedBy: currentName() };
   pushActivity('actual', filialeId+' '+monthKey);
   render();
-  await persist();
+  await persist(filialeId);
 }
 async function saveCredit(filialeId, outstandingVal){
   if(!canEdit(filialeId)) return;
@@ -2731,29 +2754,120 @@ async function saveCredit(filialeId, outstandingVal){
   RUNTIME.creditline[filialeId] = { outstanding, updatedAt:new Date().toISOString(), updatedBy: currentName() };
   pushActivity('credit line', filialeId);
   render();
-  await persist();
+  await persist(filialeId);
 }
 async function saveRecruitment(filialeId, idx, status, actualDate){
   if(!canEdit(filialeId)) return;
   RUNTIME.recruitment[filialeId+'_'+idx] = { status, actualDate: actualDate||null, updatedAt:new Date().toISOString(), updatedBy: currentName() };
   pushActivity('recruitment', filialeId+' #'+idx);
   render();
-  await persist();
+  await persist(filialeId);
 }
 async function saveNotes(filialeId, text){
   if(!canEdit(filialeId)) return;
   RUNTIME.notes[filialeId] = { text, updatedAt:new Date().toISOString(), updatedBy: currentName() };
   pushActivity('notes', filialeId);
   render();
-  await persist();
+  await persist(filialeId);
 }
 
-/* ---------- who am I (display-name only — not an access control) ---------- */
-function setMyName(name){
-  STATE.myName = (name||'').trim();
-  saveLocal('rodis_name', STATE.myName);
+/* ---------- auth actions ---------- */
+async function doLogin(username, password){
+  if(!gasConfigured()){ showLoginError(t('dbUnavailable')); return; }
+  try{
+    const out = await gasCall({ type:'login', username, password });
+    if(!out || !out.ok){ showLoginError(t('loginError')); return; }
+    STATE.currentUser = out.user;
+    STATE.myPassword = password;
+    saveUserJson('rodis_user', out.user);
+    saveLocal('rodis_pw', password);
+    STATE.view = 'overview';
+    render();
+  }catch(e){
+    showLoginError(t('savingErr'));
+  }
 }
-window.setMyName = setMyName;
+function doLogout(){
+  STATE.currentUser = null;
+  STATE.myPassword = '';
+  saveUserJson('rodis_user', null);
+  saveLocal('rodis_pw', '');
+  STATE.view = 'overview';
+  render();
+}
+function showLoginError(msg){
+  const el = document.getElementById('login-error');
+  if(el){ el.textContent = msg; el.style.display='block'; }
+}
+window.doLogin = doLogin; window.doLogout = doLogout;
+
+/* ---------- admin: user management (server-enforced — see Code.gs) ---------- */
+async function adminCall(action, payload){
+  if(!isAdmin()) return null;
+  try{
+    const out = await gasCall({
+      type:'admin', action,
+      username: STATE.currentUser.username, password: STATE.myPassword,
+      payload,
+    });
+    if(out && out.ok && out.users){
+      RUNTIME.users = out.users;
+      pushActivity(action, JSON.stringify(payload).slice(0,60));
+    }
+    return out;
+  }catch(e){
+    return { ok:false, error:String(e) };
+  }
+}
+async function refreshUsers(){
+  if(!isAdmin()) return;
+  try{
+    const out = await gasCall({ type:'listUsers', username: STATE.currentUser.username, password: STATE.myPassword });
+    if(out && out.ok) RUNTIME.users = out.users;
+    render();
+  }catch(e){}
+}
+async function adminAddUser(username, name, password, role){
+  username=(username||'').trim(); name=(name||'').trim(); password=(password||'').trim();
+  if(!username || !password){ toast(t('fillRequired'), true); return; }
+  const out = await adminCall('addUser', { username, name, password, role });
+  if(!out || !out.ok){ toast(out && out.error==='username_taken' ? t('usernameTaken') : t('savingErr'), true); return; }
+  toast(t('userAdded'), false);
+  render();
+}
+async function adminUpdateAccess(userId, filialeId, level){
+  const out = await adminCall('updateAccess', { userId, filialeId, level });
+  if(!out || !out.ok){ toast(t('savingErr'), true); return; }
+  if(STATE.currentUser && STATE.currentUser.id===userId){
+    STATE.currentUser.filiales = STATE.currentUser.filiales || {};
+    if(level==='none') delete STATE.currentUser.filiales[filialeId]; else STATE.currentUser.filiales[filialeId]=level;
+    saveUserJson('rodis_user', STATE.currentUser);
+  }
+  render();
+}
+async function adminUpdateRole(userId, role){
+  const out = await adminCall('updateRole', { userId, role });
+  if(!out || !out.ok){ toast(t('savingErr'), true); return; }
+  if(STATE.currentUser && STATE.currentUser.id===userId){ STATE.currentUser.role = role==='admin'?'admin':'user'; saveUserJson('rodis_user', STATE.currentUser); }
+  render();
+}
+async function adminResetPassword(userId, newPassword){
+  newPassword=(newPassword||'').trim();
+  if(!newPassword) return;
+  const out = await adminCall('resetPassword', { userId, newPassword });
+  if(!out || !out.ok){ toast(t('savingErr'), true); return; }
+  toast(t('userUpdated'), false);
+  render();
+}
+async function adminDeleteUser(userId){
+  if(STATE.currentUser && STATE.currentUser.id===userId){ toast(t('cannotDeleteSelf'), true); return; }
+  const out = await adminCall('deleteUser', { userId });
+  if(!out || !out.ok){ toast(out && out.error==='cannot_delete_self' ? t('cannotDeleteSelf') : t('savingErr'), true); return; }
+  toast(t('userDeleted'), false);
+  render();
+}
+window.adminAddUser=adminAddUser; window.adminUpdateAccess=adminUpdateAccess; window.adminUpdateRole=adminUpdateRole;
+window.adminResetPassword=adminResetPassword; window.adminDeleteUser=adminDeleteUser;
 </script>
 
 <script>
@@ -2761,7 +2875,12 @@ window.setMyName = setMyName;
    NAVIGATION
    ========================================================================= */
 function setLang(l){ STATE.lang=l; saveLocal('rodis_lang', l); render(); }
-function goto(view){ STATE.view=view; window.scrollTo({top:0, behavior:'instant' in window ? 'instant':'auto'}); render(); }
+function goto(view){
+  STATE.view=view;
+  window.scrollTo({top:0, behavior:'instant' in window ? 'instant':'auto'});
+  render();
+  if(view==='admin' && isAdmin()) refreshUsers();
+}
 window.setLang = setLang; window.goto = goto;
 
 /* =========================================================================
@@ -2774,15 +2893,25 @@ function iconChevron(){ return '<svg width="9" height="9" viewBox="0 0 24 24" fi
    ========================================================================= */
 function render(){
   const app = document.getElementById('app');
+  if(!STATE.currentUser){
+    app.innerHTML = renderTopbar() + renderLogin();
+    return;
+  }
   app.innerHTML = renderTopbar() + renderTabs() + '<main>' + renderMain() + '</main>' + renderFooter();
 }
 
 function renderTopbar(){
   const status = !STATE.dbReady
     ? `<span class="pill neutral">${t('previewBadge')}</span>`
-    : STATE.readOnly
-      ? `<span class="pill neutral">${t('readOnlyBadge')}</span>`
-      : `<span class="pill good"><span class="dot good"></span>${t('liveBadge')}</span>`;
+    : `<span class="pill good"><span class="dot good"></span>${t('liveBadge')}</span>`;
+  const userChip = STATE.currentUser ? `
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="text-align:right;line-height:1.2;">
+        <div style="font-size:12px;font-weight:700;">${STATE.currentUser.name||STATE.currentUser.username}</div>
+        <div style="font-size:10.5px;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.04em;">${STATE.currentUser.role==='admin'?t('roleAdmin'):t('roleUser')}</div>
+      </div>
+      <button class="icon-btn" onclick="doLogout()">${t('logout')}</button>
+    </div>` : '';
   return `
   <div class="topbar">
     <div class="brandmark">R</div>
@@ -2796,7 +2925,7 @@ function renderTopbar(){
       <button class="${STATE.lang==='en'?'active':''}" onclick="setLang('en')">EN</button>
       <button class="${STATE.lang==='fr'?'active':''}" onclick="setLang('fr')">FR</button>
     </div>
-    <input class="name-input" type="text" value="${escapeAttr(STATE.myName)}" placeholder="${t('yourNamePlaceholder')}" onchange="setMyName(this.value)"/>
+    ${userChip}
   </div>`;
 }
 
@@ -2806,22 +2935,50 @@ function renderTabs(){
     const f = FILIALES[id];
     tabs += `<div class="tab ${STATE.view===id?'active':''}" onclick="goto('${id}')"><span class="flag">${f.flag}</span>${countryName(f)}</div>`;
   });
-  tabs += `<div class="tab ${STATE.view==='admin'?'active':''}" onclick="goto('admin')">⚙ ${t('tabAdmin')}</div>`;
+  if(isAdmin()){
+    tabs += `<div class="tab ${STATE.view==='admin'?'active':''}" onclick="goto('admin')">⚙ ${t('tabAdmin')}</div>`;
+  }
   return `<div class="tabs">${tabs}</div>`;
 }
 
-const BUILD_STAMP = '2026-08-31 15:32 UTC (v4-pollfix)';
+const BUILD_STAMP = '2026-08-31 15:48 UTC (v5-realauth)';
 function renderFooter(){
   return `<footer class="appfoot">${t('footerNote')}<br><span style="opacity:.55;font-size:10.5px;">Build ${BUILD_STAMP}</span></footer>`;
 }
 
 function renderMain(){
-  if(STATE.view==='admin') return renderAdminPanel();
+  if(STATE.view==='admin') return isAdmin() ? renderAdminPanel() : renderOverview();
   if(STATE.view==='overview') return renderOverview();
   const f = FILIALES[STATE.view];
   if(!f) return renderOverview();
+  if(!canView(f.id)) return `<div class="card pad" style="max-width:520px;margin-top:20px;">${t('noAccess')}</div>`;
   return renderFilialeDetail(f);
 }
+
+/* =========================================================================
+   LOGIN
+   ========================================================================= */
+function renderLogin(){
+  return `
+  <main style="max-width:400px;">
+    <div class="card pad" style="margin-top:60px;">
+      <h1 class="display" style="font-size:22px;margin:0 0 4px;">${t('loginTitle')}</h1>
+      <p style="font-size:13px;color:var(--ink-soft);margin:0 0 18px;">${t('loginSub')}</p>
+      <div id="login-error" style="display:none;color:var(--critical);font-size:12.5px;margin-bottom:10px;font-weight:600;"></div>
+      <label class="field-label">${t('loginUsername')}</label>
+      <input id="login-user" class="cell-input" style="width:100%;margin-bottom:12px;" type="text" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()"/>
+      <label class="field-label">${t('loginPassword')}</label>
+      <input id="login-pass" class="cell-input" style="width:100%;margin-bottom:16px;" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitLogin()"/>
+      <button class="save-btn" style="width:100%;padding:9px;font-size:13px;" onclick="submitLogin()">${t('loginBtn')}</button>
+    </div>
+  </main>`;
+}
+function submitLogin(){
+  const u = document.getElementById('login-user').value;
+  const p = document.getElementById('login-pass').value;
+  doLogin(u,p);
+}
+window.submitLogin = submitLogin;
 </script>
 
 <script>
@@ -3243,23 +3400,81 @@ function notesPanel(f){
    shared, live activity log.
    ========================================================================= */
 function renderAdminPanel(){
+  const users = RUNTIME.users || [];
   return `
   <div class="crumb">${t('tabAdmin')}</div>
   <h1 class="display" style="font-size:26px;font-weight:600;margin:0 0 6px;">${t('adminTitle')}</h1>
   <p style="max-width:680px;color:var(--ink-soft);font-size:13.5px;line-height:1.55;margin:0 0 10px;">${t('adminSub')}</p>
-  <div class="access-note" style="max-width:760px;">${t('shareNote')}</div>
+  <div class="access-note" style="max-width:760px;">${t('adminSecurityNote')}</div>
 
-  <div class="section-title"><h2>${t('editPasscodeLabel')}</h2></div>
-  <div class="card pad" style="max-width:420px;">
-    <div style="display:flex;gap:8px;">
-      <input id="edit-code-input" class="cell-input" style="width:100%" type="password" value="${escapeAttr(STATE.editCode)}" placeholder="${t('editPasscodeLabel')}"/>
-      <button class="save-btn" onclick="setEditCode(document.getElementById('edit-code-input').value)">${t('editPasscodeBtn')}</button>
+  <div class="section-title"><h2>${t('adminAddUser')}</h2></div>
+  <div class="card pad" style="max-width:680px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <input id="au-username" class="cell-input" placeholder="${t('adminUsername')}" autocomplete="off"/>
+      <input id="au-name" class="cell-input" placeholder="${t('adminName')}" autocomplete="off"/>
+      <input id="au-password" class="cell-input" type="password" placeholder="${t('adminPassword')}" autocomplete="new-password"/>
+      <select id="au-role" class="cell-input">
+        <option value="user">${t('roleUser')}</option>
+        <option value="admin">${t('roleAdmin')}</option>
+      </select>
     </div>
+    <div style="margin-top:10px;">
+      <button class="save-btn" onclick="adminAddUser(document.getElementById('au-username').value, document.getElementById('au-name').value, document.getElementById('au-password').value, document.getElementById('au-role').value); document.getElementById('au-username').value=''; document.getElementById('au-name').value=''; document.getElementById('au-password').value='';">${t('adminAddUser')}</button>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>${t('adminUsers')}</h2></div>
+  <div style="display:flex;flex-direction:column;gap:12px;max-width:820px;">
+    ${users.length ? users.map(u=>renderUserCard(u)).join('') : `<div style="font-size:12.5px;color:var(--ink-mute)">${t('adminNoActivity')}</div>`}
   </div>
 
   <div class="section-title"><h2>${t('adminActivity')}</h2></div>
   <div class="card pad">${renderActivityLog()}</div>
   `;
+}
+
+function renderUserCard(u){
+  const isSelf = STATE.currentUser && STATE.currentUser.id===u.id;
+  const accessGrid = u.role==='admin'
+    ? `<div class="access-note" style="margin-top:8px;">${t('roleAdmin')} — ${t('accessEntry')} · ${FILIALE_ORDER.map(fid=>countryName(FILIALES[fid])).join(', ')}</div>`
+    : `<div style="margin-top:10px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-mute);margin-bottom:6px;">${t('adminAccessPerFiliale')}</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;">
+          ${FILIALE_ORDER.map(fid=>{
+            const f = FILIALES[fid];
+            const lvl = (u.filiales && u.filiales[fid]) || 'none';
+            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border:1px solid var(--border);border-radius:8px;padding:6px 8px;">
+              <span style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><span class="flag">${f.flag}</span> ${countryName(f)}</span>
+              <select class="cell-input" style="width:112px" onchange="adminUpdateAccess('${u.id}','${fid}',this.value)">
+                <option value="none" ${lvl==='none'?'selected':''}>${t('accessNone')}</option>
+                <option value="view" ${lvl==='view'?'selected':''}>${t('accessView')}</option>
+                <option value="entry" ${lvl==='entry'?'selected':''}>${t('accessEntry')}</option>
+              </select>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  return `
+  <div class="card pad">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-weight:700;font-size:14px;">${escapeAttr(u.name||u.username)}${isSelf?` <span style="color:var(--ink-mute);font-weight:400;font-size:11.5px;">(${t('loggedInAs')})</span>`:''}</div>
+        <div style="font-size:12px;color:var(--ink-mute);">@${escapeAttr(u.username)}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select class="cell-input" onchange="adminUpdateRole('${u.id}', this.value)">
+          <option value="user" ${u.role!=='admin'?'selected':''}>${t('roleUser')}</option>
+          <option value="admin" ${u.role==='admin'?'selected':''}>${t('roleAdmin')}</option>
+        </select>
+        <button class="save-btn" style="background:#b3413d" ${isSelf?'disabled title="'+escapeAttr(t('cannotDeleteSelf'))+'"':''} onclick="adminDeleteUser('${u.id}')">${t('adminDelete')}</button>
+      </div>
+    </div>
+    ${accessGrid}
+    <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap;">
+      <input id="pw-${u.id}" class="cell-input" type="password" placeholder="${t('adminNewPwd')}" style="max-width:220px;" autocomplete="new-password"/>
+      <button class="save-btn" onclick="const el=document.getElementById('pw-${u.id}'); adminResetPassword('${u.id}', el.value); el.value='';">${t('adminResetPwd')}</button>
+    </div>
+  </div>`;
 }
 
 function renderActivityLog(){
