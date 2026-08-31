@@ -1,53 +1,3269 @@
-/**
- * Rodis Filiales — live data backend (Google Apps Script Web App).
- *
- * Setup:
- * 1. In the Google Sheet you want to use as the data store, open
- *    Extensions > Apps Script.
- * 2. Delete any starter code and paste this whole file in.
- * 3. Change EDIT_PASSCODE below to a passcode of your choice — this is
- *    what you'll share with people who should be able to ENTER data
- *    (everyone with the dashboard link can already VIEW it).
- * 4. Click Deploy > New deployment > gear icon > Web app.
- *      Execute as:      Me
- *      Who has access:  Anyone
- * 5. Click Deploy, authorize when prompted, then copy the "Web app URL"
- *    (it ends in /exec) — that's the GAS_URL the dashboard needs.
- */
+<title>Rodis Filiales</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap');
 
-var SHEET_NAME = 'RodisData';
-var EDIT_PASSCODE = 'CHANGE_ME';
+  :root{
+    color-scheme: light;
+    --brand-50:#eef5f2; --brand-100:#d7e9e2;
+    --primary:#0e5c52; --primary-ink:#0a3f38; --primary-soft:#e4efec;
+    --accent:#c8912e; --accent-soft:#f6e9d3;
+    --page-bg:#f7f5ef; --surface:#ffffff; --surface-2:#fbf9f3;
+    --ink:#16211d; --ink-soft:#52514e; --ink-mute:#898781;
+    --border:rgba(15,45,40,0.12); --border-strong:rgba(15,45,40,0.22);
+    --shadow: 0 1px 2px rgba(20,30,25,0.04), 0 8px 24px -12px rgba(20,30,25,0.18);
 
-function getSheet_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sh = ss.getSheetByName(SHEET_NAME);
-  if (!sh) {
-    sh = ss.insertSheet(SHEET_NAME);
-    sh.getRange(1, 1).setValue('{}');
+    /* chart chrome (dataviz reference palette, light) */
+    --chart-surface:#fcfcfb; --chart-grid:#e1e0d9; --chart-axis:#c3c2b7; --chart-muted:#898781;
+    /* categorical (fixed order, validated) */
+    --series-1:#2a78d6; --series-2:#eb6834; --series-3:#1baf7a; --series-4:#eda100; --series-5:#e87ba4;
+    /* status (fixed, never themed) */
+    --good:#0ca30c; --good-text:#006300; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --good-bg:#e4f6e0; --warning-bg:#fef3d9; --critical-bg:#fbe3e1; --neutral-bg:#eeece4;
   }
-  return sh;
-}
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --primary:#4fbfa8; --primary-ink:#bdeee0; --primary-soft:#173832;
+      --accent:#e0ab55; --accent-soft:#3a2c14;
+      --page-bg:#0c1614; --surface:#132522; --surface-2:#0f1e1b;
+      --ink:#f2f1ea; --ink-soft:#c3c2b7; --ink-mute:#8b988f;
+      --border:rgba(255,255,255,0.10); --border-strong:rgba(255,255,255,0.18);
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px -14px rgba(0,0,0,0.6);
 
-function doGet(e) {
-  var sh = getSheet_();
-  var raw = sh.getRange(1, 1).getValue();
-  var body = (raw && String(raw).trim()) ? String(raw) : '{}';
-  return ContentService.createTextOutput(body).setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  try {
-    var payload = JSON.parse(e.postData.contents);
-    if (payload.passcode !== EDIT_PASSCODE) {
-      return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'bad_passcode' }))
-        .setMimeType(ContentService.MimeType.JSON);
+      --chart-surface:#1a1a19; --chart-grid:#2c2c2a; --chart-axis:#383835; --chart-muted:#8b988f;
+      --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70; --series-4:#c98500; --series-5:#d55181;
+      --good:#0ca30c; --good-text:#3ecf3e; --warning:#fab219; --serious:#ec835a; --critical:#e66767;
+      --good-bg:#123a17; --warning-bg:#3a2c0d; --critical-bg:#3a1414; --neutral-bg:#1c2b27;
     }
-    var sh = getSheet_();
-    sh.getRange(1, 1).setValue(JSON.stringify(payload.data));
-    return ContentService.createTextOutput(JSON.stringify({ ok: true }))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
-      .setMimeType(ContentService.MimeType.JSON);
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --primary:#4fbfa8; --primary-ink:#bdeee0; --primary-soft:#173832;
+    --accent:#e0ab55; --accent-soft:#3a2c14;
+    --page-bg:#0c1614; --surface:#132522; --surface-2:#0f1e1b;
+    --ink:#f2f1ea; --ink-soft:#c3c2b7; --ink-mute:#8b988f;
+    --border:rgba(255,255,255,0.10); --border-strong:rgba(255,255,255,0.18);
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px -14px rgba(0,0,0,0.6);
+
+    --chart-surface:#1a1a19; --chart-grid:#2c2c2a; --chart-axis:#383835; --chart-muted:#8b988f;
+    --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70; --series-4:#c98500; --series-5:#d55181;
+    --good:#0ca30c; --good-text:#3ecf3e; --warning:#fab219; --serious:#ec835a; --critical:#e66767;
+    --good-bg:#123a17; --warning-bg:#3a2c0d; --critical-bg:#3a1414; --neutral-bg:#1c2b27;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--page-bg); color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{ font-family:'Fraunces',Georgia,serif; text-wrap:balance; }
+  .num{ font-variant-numeric:tabular-nums; }
+  a{color:inherit;}
+  button{font-family:inherit;}
+  ::selection{ background:var(--accent-soft); }
+
+  /* ---------- shell ---------- */
+  .app{ min-height:100vh; display:flex; flex-direction:column; }
+  .topbar{
+    position:sticky; top:0; z-index:30; background:var(--surface); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:16px; padding:12px 20px;
+  }
+  .brandmark{
+    width:36px;height:36px;border-radius:10px; background:linear-gradient(155deg,var(--primary),var(--primary-ink));
+    display:flex;align-items:center;justify-content:center; color:#fff; font-family:'Fraunces',serif; font-weight:600; font-size:18px;
+    flex:none; box-shadow:var(--shadow);
+  }
+  .brand-text{ display:flex; flex-direction:column; line-height:1.15; }
+  .brand-text .t1{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; letter-spacing:.2px;}
+  .brand-text .t2{ font-size:11.5px; color:var(--ink-mute); text-transform:uppercase; letter-spacing:.08em; }
+  .topbar-spacer{ flex:1; }
+  .lang-toggle{
+    display:flex; border:1px solid var(--border-strong); border-radius:999px; padding:2px; background:var(--surface-2); flex:none;
+  }
+  .lang-toggle button{
+    border:none; background:transparent; color:var(--ink-soft); font-size:12.5px; font-weight:700; letter-spacing:.03em;
+    padding:6px 13px; border-radius:999px; cursor:pointer; transition:background .15s,color .15s;
+  }
+  .lang-toggle button.active{ background:var(--primary); color:#fff; }
+  .theme-note{ font-size:11px; color:var(--ink-mute); }
+
+  .tabs{
+    display:flex; gap:4px; padding:0 20px; overflow-x:auto; background:var(--surface); border-bottom:1px solid var(--border);
+    scrollbar-width:thin;
+  }
+  .tab{
+    flex:none; display:flex; align-items:center; gap:7px; padding:11px 14px; font-size:13.5px; font-weight:600;
+    color:var(--ink-soft); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap;
+  }
+  .tab:hover{ color:var(--ink); }
+  .tab.active{ color:var(--primary); border-bottom-color:var(--primary); }
+  .tab .flag{ font-size:15px; }
+
+  main{ flex:1; padding:22px 20px 64px; max-width:1220px; margin:0 auto; width:100%; }
+  .crumb{ font-size:12.5px; color:var(--ink-mute); margin-bottom:6px; }
+  .crumb a{ cursor:pointer; color:var(--primary); text-decoration:none; }
+  .crumb a:hover{ text-decoration:underline; }
+
+  /* ---------- generic components ---------- */
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); }
+  .pad{ padding:18px 20px; }
+  .grid{ display:grid; gap:14px; }
+  .kpi-row{ grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); }
+  .kpi{ padding:16px 18px; }
+  .kpi .label{ font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-mute); font-weight:700; margin-bottom:8px; }
+  .kpi .value{ font-family:'Fraunces',serif; font-size:25px; font-weight:600; line-height:1.05; }
+  .kpi .sub{ font-size:12px; color:var(--ink-soft); margin-top:6px; }
+
+  .pill{ display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:999px; font-size:11.5px; font-weight:700; letter-spacing:.02em; }
+  .pill.good{ background:var(--good-bg); color:var(--good-text); }
+  .pill.warning{ background:var(--warning-bg); color:#8a5a00; }
+  .pill.critical{ background:var(--critical-bg); color:var(--critical); }
+  .pill.neutral{ background:var(--neutral-bg); color:var(--ink-mute); }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .pill.warning{ color:#ffd98a; } }
+  :root[data-theme="dark"] .pill.warning{ color:#ffd98a; }
+  .dot{ width:7px;height:7px;border-radius:50%; flex:none; }
+  .dot.good{ background:var(--good); } .dot.warning{ background:var(--warning); } .dot.critical{ background:var(--critical); } .dot.neutral{ background:var(--ink-mute); }
+
+  .section-title{ display:flex; align-items:center; justify-content:space-between; margin:30px 0 12px; }
+  .section-title h2{ font-size:19px; font-weight:600; margin:0; }
+  .section-title .hint{ font-size:12px; color:var(--ink-mute); }
+
+  /* overview cards */
+  .filiale-grid{ grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+  .filiale-card{ cursor:pointer; padding:18px 20px; transition:transform .15s, box-shadow .15s; display:flex; flex-direction:column; gap:12px; }
+  .filiale-card:hover{ transform:translateY(-2px); box-shadow:0 4px 8px rgba(20,30,25,.06), 0 16px 32px -16px rgba(20,30,25,.28); }
+  .filiale-card .fc-head{ display:flex; align-items:center; gap:11px; }
+  .filiale-card .flag{ font-size:26px; }
+  .filiale-card .fc-name{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; }
+  .filiale-card .fc-dist{ font-size:12px; color:var(--ink-mute); }
+  .fc-obj{ display:flex; align-items:baseline; justify-content:space-between; }
+  .fc-obj .v{ font-family:'Fraunces',serif; font-size:19px; font-weight:600; }
+  .fc-obj .l{ font-size:11px; color:var(--ink-mute); text-transform:uppercase; letter-spacing:.05em; }
+  .bar-track{ height:7px; border-radius:99px; background:var(--neutral-bg); overflow:hidden; }
+  .bar-fill{ height:100%; border-radius:99px; transition:width .4s; }
+  .bar-fill.good{ background:var(--good); } .bar-fill.warning{ background:var(--warning); } .bar-fill.critical{ background:var(--critical); } .bar-fill.neutral{ background:var(--ink-mute); }
+  .fc-row{ display:flex; align-items:center; justify-content:space-between; font-size:11.5px; color:var(--ink-soft); }
+
+  /* filiale detail */
+  .detail-head{ display:flex; flex-wrap:wrap; align-items:center; gap:16px; margin-bottom:18px; }
+  .detail-head .flag{ font-size:40px; }
+  .detail-head h1{ font-size:26px; margin:0; font-weight:600; }
+  .detail-head .meta{ font-size:12.5px; color:var(--ink-soft); margin-top:3px; }
+  .badge-row{ display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
+  .badge{ font-size:11.5px; font-weight:600; padding:5px 11px; border-radius:8px; background:var(--surface-2); border:1px solid var(--border); color:var(--ink-soft); }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th{ text-align:right; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-mute); font-weight:700; padding:0 10px 8px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  th:first-child, td:first-child{ text-align:left; }
+  td{ padding:8px 10px; border-bottom:1px solid var(--border); text-align:right; white-space:nowrap; }
+  tr:last-child td{ border-bottom:none; }
+  tr.total-row td{ font-weight:700; border-top:2px solid var(--border-strong); border-bottom:none; padding-top:10px; }
+  .table-wrap{ overflow-x:auto; }
+  .cell-input{
+    width:92px; text-align:right; padding:5px 7px; border-radius:7px; border:1px solid var(--border-strong);
+    background:var(--surface-2); color:var(--ink); font-size:12.5px; font-family:inherit;
+  }
+  .cell-input:focus{ outline:2px solid var(--primary); outline-offset:1px; }
+  .cell-input:disabled{ opacity:.55; cursor:not-allowed; }
+  .save-btn{
+    border:none; background:var(--primary); color:#fff; font-size:11px; font-weight:700; padding:5px 10px;
+    border-radius:7px; cursor:pointer;
+  }
+  .save-btn:hover{ opacity:.9; }
+  .save-btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .icon-btn{ border:1px solid var(--border-strong); background:var(--surface); color:var(--ink-soft); border-radius:7px; padding:5px 9px; font-size:11px; cursor:pointer; font-weight:600;}
+
+  select.cell-input{ text-align:left; -webkit-appearance:none; appearance:none; }
+
+  .chart-card{ padding:18px 20px 12px; }
+  .chart-legend{ display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); margin-bottom:6px; }
+  .chart-legend .li{ display:flex; align-items:center; gap:6px; }
+  .swatch{ width:11px;height:11px;border-radius:3px; }
+
+  .tooltip{
+    position:fixed; pointer-events:none; background:var(--ink); color:var(--page-bg); font-size:12px; padding:8px 11px;
+    border-radius:9px; box-shadow:0 8px 20px rgba(0,0,0,.25); z-index:100; line-height:1.5; max-width:220px; opacity:0; transition:opacity .1s;
+  }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .tooltip{ background:#f2f1ea; color:#0c1614; } }
+  :root[data-theme="dark"] .tooltip{ background:#f2f1ea; color:#0c1614; }
+
+  .two-col{ display:grid; grid-template-columns:1.3fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:860px){ .two-col{ grid-template-columns:1fr; } }
+
+  .mkt-item{ padding:8px 0; }
+  .mkt-item .mkt-toprow{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:5px; }
+  .mkt-item .mkt-label{ font-size:12.5px; color:var(--ink-soft); }
+  .mkt-item .mkt-val{ text-align:right; font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .mkt-item .mkt-bar{ width:100%; height:8px; border-radius:99px; background:var(--neutral-bg); overflow:hidden; }
+  .mkt-item .mkt-bar > div{ height:100%; border-radius:99px; }
+
+  .gauge-wrap{ display:flex; flex-direction:column; gap:8px; }
+  .gauge-track{ height:14px; border-radius:99px; background:var(--neutral-bg); position:relative; overflow:hidden; }
+  .gauge-fill{ height:100%; border-radius:99px; }
+  .gauge-labels{ display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink-mute); }
+
+  textarea.notes{
+    width:100%; min-height:88px; border:1px solid var(--border-strong); border-radius:10px; padding:10px 12px;
+    background:var(--surface-2); color:var(--ink); font-family:inherit; font-size:13px; resize:vertical;
+  }
+  input.name-input{
+    border:1px solid var(--border-strong); border-radius:8px; padding:6px 10px; background:var(--surface-2); color:var(--ink);
+    font-family:inherit; font-size:12.5px; width:160px;
+  }
+  .field-label{ font-size:11px; color:var(--ink-mute); font-weight:600; margin-bottom:5px; display:block; }
+  .toast-wrap{ position:fixed; bottom:18px; right:18px; z-index:200; display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
+  .toast{
+    background:var(--ink); color:var(--page-bg); font-size:12.5px; padding:10px 15px; border-radius:10px; box-shadow:var(--shadow);
+    max-width:290px; animation:toastin .18s ease-out;
+  }
+  .toast.err{ background:var(--critical); color:#fff; }
+  @keyframes toastin{ from{ opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .access-note{ font-size:11.5px; color:var(--ink-mute); background:var(--surface-2); border:1px dashed var(--border-strong); border-radius:8px; padding:8px 11px; margin-top:8px; }
+
+  footer.appfoot{ text-align:center; font-size:11.5px; color:var(--ink-mute); padding:26px 20px 40px; }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+
+<div class="app" id="app"></div>
+<div class="toast-wrap" id="toasts"></div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+/* =========================================================================
+   DATA — extracted & normalized from the 6 validated filiale plan workbooks
+   ========================================================================= */
+const FILIALES = {
+ "nigeria": {
+  "id": "nigeria",
+  "countryFr": "Nigeria",
+  "countryEn": "Nigeria",
+  "flag": "🇳🇬",
+  "entity": "Eko Royale Nigeria",
+  "distributor": "Eko Royale",
+  "currency": "NGN",
+  "currencyNote": "Naira nigérian",
+  "periodFr": "Octobre 2026 – Septembre 2027",
+  "periodEn": "October 2026 – September 2027",
+  "objectiveAnnual": 800000000,
+  "objectiveMonthly": 66666666.666666664,
+  "ytdCartons2026": 4694,
+  "ytdRevenue2026": 86583820,
+  "monthsElapsed2026": 7,
+  "runRateMonthly": 12369117.142857144,
+  "avgPricePerCarton": 18445.636983383043,
+  "runRateCartons": 2000,
+  "growthRateRequired": 0.09,
+  "citySplit": [
+   {
+    "city": "Lagos",
+    "cityEn": "Lagos",
+    "share": 0.6
+   },
+   {
+    "city": "Onicha",
+    "cityEn": "Onitsha",
+    "share": 0.2
+   },
+   {
+    "city": "Kano",
+    "cityEn": "Kano",
+    "share": 0.2
+   }
+  ],
+  "marketing": {
+   "items": [
+    {
+     "labelFr": "Publicité digitale",
+     "labelEn": "Digital advertising",
+     "monthly": 2000000
+    },
+    {
+     "labelFr": "Promotions & échantillonnage terrain",
+     "labelEn": "Promotions & field sampling",
+     "monthly": 500000
+    },
+    {
+     "labelFr": "Supports point de vente",
+     "labelEn": "Point-of-sale materials",
+     "monthly": 500000
+    },
+    {
+     "labelFr": "Événements / activations",
+     "labelEn": "Events / activations",
+     "monthly": 500000
+    }
+   ],
+   "monthlyTotal": 3850000,
+   "annualTotal": 46200000
+  },
+  "existingChargesMonthly": 2146805.5555555555,
+  "existingChargesAnnual": 25761666.666666664,
+  "recruitment": {
+   "positions": [
+    {
+     "title": "Responsable Admin & Log.",
+     "level": "Direction",
+     "city": "Lagos",
+     "salary": 1500000,
+     "hireMonth": 6,
+     "titleEn": "Admin & Logistics Manager",
+     "levelEn": "Management"
+    },
+    {
+     "title": "Commercial senior",
+     "level": "Encadrement",
+     "city": "Lagos",
+     "salary": 300000,
+     "hireMonth": 1,
+     "titleEn": "Senior Sales Rep",
+     "levelEn": "Supervisory"
+    },
+    {
+     "title": "Commercial senior",
+     "level": "Encadrement",
+     "city": "Lagos",
+     "salary": 300000,
+     "hireMonth": 1,
+     "titleEn": "Senior Sales Rep",
+     "levelEn": "Supervisory"
+    },
+    {
+     "title": "Commercial senior",
+     "level": "Encadrement",
+     "city": "Lagos",
+     "salary": 300000,
+     "hireMonth": 1,
+     "titleEn": "Senior Sales Rep",
+     "levelEn": "Supervisory"
+    },
+    {
+     "title": "Commercial Junior",
+     "level": "Personnel opérationnel",
+     "city": "Lagos",
+     "salary": 150000,
+     "hireMonth": 1,
+     "titleEn": "Junior Sales Rep",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Commercial Junior",
+     "level": "Personnel opérationnel",
+     "city": "Lagos",
+     "salary": 150000,
+     "hireMonth": 1,
+     "titleEn": "Junior Sales Rep",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Commercial Junior",
+     "level": "Personnel opérationnel",
+     "city": "Lagos",
+     "salary": 150000,
+     "hireMonth": 1,
+     "titleEn": "Junior Sales Rep",
+     "levelEn": "Operational staff"
+    }
+   ],
+   "monthlyOnceFull": 2850000,
+   "annualFull": 34200000,
+   "totalPositionsInPlan": 11,
+   "note": "11 postes à pourvoir au total (Structure_Optimal, 26 postes) ; 7 détaillés ci-dessus dans le plan financier."
+  },
+  "monthly": [
+   {
+    "month": "Oct-26",
+    "monthEn": "Oct-26",
+    "monthKey": "2026-10",
+    "cartons": 2180,
+    "revenueRodis": 40211488.623775035,
+    "revenueDistributor": 50264360.779718794,
+    "existingCharges": 2146805.5555555555,
+    "marketingBudget": 3850000,
+    "recruitmentCum": 1350000,
+    "opex": 603172.3293566256,
+    "logisticsCost": 4021148.862377504,
+    "totalCharges": 11971126.747289686,
+    "netResult": 38293234.03242911,
+    "profit": -1918254.5913459286
+   },
+   {
+    "month": "Nov-26",
+    "monthEn": "Nov-26",
+    "monthKey": "2026-11",
+    "cartons": 2376.2000000000003,
+    "revenueRodis": 43830522.59991479,
+    "revenueDistributor": 54788153.24989349,
+    "existingCharges": 2146805.5555555555,
+    "marketingBudget": 3850000,
+    "recruitmentCum": 1350000,
+    "opex": 657457.8389987218,
+    "logisticsCost": 4383052.259991479,
+    "totalCharges": 12387315.654545758,
+    "netResult": 42400837.59534773,
+    "profit": -1429685.004567057
+   },
+   {
+    "month": "Déc-26",
+    "monthEn": "Dec-26",
+    "monthKey": "2026-12",
+    "cartons": 2590.0580000000004,
+    "revenueRodis": 47775269.633907124,
+    "revenueDistributor": 59719087.04238391,
+    "existingCharges": 2146805.5555555555,
+    "marketingBudget": 3850000,
+    "recruitmentCum": 1350000,
+    "opex": 716629.0445086069,
+    "logisticsCost": 4777526.963390713,
+    "totalCharges": 12840961.563454876,
+    "netResult": 46878125.478929035,
+    "profit": -897144.154978089
+   },
+   {
+    "month": "Jan-27",
+    "monthEn": "Jan-27",
+    "monthKey": "2027-01",
+    "cartons": 2823.1632200000004,
+    "revenueRodis": 52075043.90095876,
+    "revenueDistributor": 65093804.876198456,
+    "existingCharges": 2146805.5555555555,
+    "marketingBudget": 3850000,
+    "recruitmentCum": 1350000,
+    "opex": 781125.6585143814,
+    "logisticsCost": 5207504.3900958765,
+    "totalCharges": 13335435.604165815,
+    "netResult": 51758369.27203264,
+    "profit": -316674.6289261207
+   },
+   {
+    "month": "Fév-27",
+    "monthEn": "Feb-27",
+    "monthKey": "2027-02",
+    "cartons": 3077.247909800001,
+    "revenueRodis": 56761797.85204506,
+    "revenueDistributor": 70952247.31505632,
+    "existingCharges": 2146805.5555555555,
+    "marketingBudget": 3850000,
+    "recruitmentCum": 1350000,
+    "opex": 851426.9677806759,
+    "logisticsCost": 5676179.7852045065,
+    "totalCharges": 13874412.30854074,
+    "netResult": 57077835.006515585,
+    "profit": 316037.1544705257
+   },
+   {
+    "month": "Mar-27",
+    "monthEn": "Mar-27",
+    "monthKey": "2027-03",
+    "cartons": 3354.2002216820015,
+    "revenueRodis": 61870359.65872913,
+    "revenueDistributor": 77337949.5734114,
+    "existingCharges": 2146805.5555555555,
+    "marketingBudget": 3850000,
+    "recruitmentCum": 2850000,
+    "opex": 928055.394880937,
+    "logisticsCost": 6187035.965872914,
+    "totalCharges": 15961896.916309407,
+    "netResult": 61376052.657101996,
+    "profit": -494307.0016271323
+   },
+   {
+    "month": "Avr-27",
+    "monthEn": "Apr-27",
+    "monthKey": "2027-04",
+    "cartons": 3656.0782416333814,
+    "revenueRodis": 67438692.02801475,
+    "revenueDistributor": 84298365.03501844,
+    "existingCharges": 2146805.5555555555,
+    "marketingBudget": 3850000,
+    "recruitmentCum": 2850000,
+    "opex": 1011580.3804202212,
+    "logisticsCost": 6743869.202801475,
+    "totalCharges": 16602255.138777252,
+    "netResult": 67696109.89624119,
+    "profit": 257417.86822643876
+   },
+   {
+    "month": "Mai-27",
+    "monthEn": "May-27",
+    "monthKey": "2027-05",
+    "cartons": 3985.125283380386,
+    "revenueRodis": 73508174.31053607,
+    "revenueDistributor": 91885217.8881701,
+    "existingCharges": 2146805.5555555555,
+    "marketingBudget": 3850000,
+    "recruitmentCum": 2850000,
+    "opex": 1102622.614658041,
+    "logisticsCost": 7350817.431053608,
+    "totalCharges": 17300245.601267204,
+    "netResult": 74584972.28690289,
+    "profit": 1076797.976366818
+   },
+   {
+    "month": "Juin-27",
+    "monthEn": "Jun-27",
+    "monthKey": "2027-06",
+    "cartons": 4343.786558884621,
+    "revenueRodis": 80123909.99848433,
+    "revenueDistributor": 100154887.4981054,
+    "existingCharges": 2146805.5555555555,
+    "marketingBudget": 3850000,
+    "recruitmentCum": 2850000,
+    "opex": 1201858.649977265,
+    "logisticsCost": 8012390.999848433,
+    "totalCharges": 18061055.205381252,
+    "netResult": 82093832.29272416,
+    "profit": 1969922.294239834
+   },
+   {
+    "month": "Juil-27",
+    "monthEn": "Jul-27",
+    "monthKey": "2027-07",
+    "cartons": 4734.727349184237,
+    "revenueRodis": 87335061.89834793,
+    "revenueDistributor": 109168827.37293491,
+    "existingCharges": 2146805.5555555555,
+    "marketingBudget": 3850000,
+    "recruitmentCum": 2850000,
+    "opex": 1310025.9284752188,
+    "logisticsCost": 8733506.189834794,
+    "totalCharges": 18890337.67386557,
+    "netResult": 90278489.69906934,
+    "profit": 2943427.800721407
+   },
+   {
+    "month": "Août-27",
+    "monthEn": "Aug-27",
+    "monthKey": "2027-08",
+    "cartons": 5160.852810610819,
+    "revenueRodis": 95195217.46919924,
+    "revenueDistributor": 118994021.83649905,
+    "existingCharges": 2146805.5555555555,
+    "marketingBudget": 3850000,
+    "recruitmentCum": 2850000,
+    "opex": 1427928.2620379885,
+    "logisticsCost": 9519521.746919924,
+    "totalCharges": 19794255.564513467,
+    "netResult": 99199766.27198559,
+    "profit": 4004548.8027863503
+   },
+   {
+    "month": "Sept-27",
+    "monthEn": "Sep-27",
+    "monthKey": "2027-09",
+    "cartons": 5625.329563565792,
+    "revenueRodis": 103762787.04142717,
+    "revenueDistributor": 129703483.80178395,
+    "existingCharges": 2146805.5555555555,
+    "marketingBudget": 3850000,
+    "recruitmentCum": 2850000,
+    "opex": 1556441.8056214075,
+    "logisticsCost": 10376278.704142718,
+    "totalCharges": 20779526.06531968,
+    "netResult": 108923957.73646426,
+    "profit": 5161170.695037097
+   }
+  ],
+  "totals": {
+   "cartons": 43906.76915874124,
+   "revenueRodis": 809888325.0153394,
+   "revenueDistributor": 1012360406.2691742,
+   "existingCharges": 25761666.666666668,
+   "marketingBudget": 46200000,
+   "recruitmentCum": 26700000,
+   "opex": 12148324.87523009,
+   "logisticsCost": 80988832.50153396,
+   "totalCharges": 191798824.04343075,
+   "netResult": 820561582.2257435,
+   "profit": 10673257.210404143
+  },
+  "creditLine": {
+   "outstanding": 154614100,
+   "proposedCeiling": 250000000,
+   "availableMargin": 95385900,
+   "utilizationRate": 0.6184564
+  }
+ },
+ "togo": {
+  "id": "togo",
+  "countryFr": "Togo",
+  "countryEn": "Togo",
+  "flag": "🇹🇬",
+  "entity": "Rodis Togo",
+  "distributor": "Riam",
+  "currency": "XOF",
+  "currencyNote": "Franc CFA (UEMOA)",
+  "periodFr": "Septembre 2026 – Août 2027",
+  "periodEn": "September 2026 – August 2027",
+  "objectiveAnnual": 780000000,
+  "objectiveMonthly": 65000000,
+  "ytdCartons2026": 18923,
+  "ytdRevenue2026": 245147500,
+  "monthsElapsed2026": 7,
+  "runRateMonthly": 35021071.428571425,
+  "avgPricePerCarton": 12955.001849601014,
+  "runRateCartons": 2703.285714285714,
+  "growthRateRequired": 0.092,
+  "citySplit": [],
+  "marketing": {
+   "items": [
+    {
+     "labelFr": "Publicité digitale",
+     "labelEn": "Digital advertising",
+     "monthly": 200000
+    },
+    {
+     "labelFr": "Promotions & échantillonnage terrain",
+     "labelEn": "Promotions & field sampling",
+     "monthly": 150000
+    },
+    {
+     "labelFr": "PLV / supports point de vente",
+     "labelEn": "POS materials",
+     "monthly": 120000
+    },
+    {
+     "labelFr": "Communication locale",
+     "labelEn": "Local media",
+     "monthly": 120000
+    },
+    {
+     "labelFr": "Événements / activations",
+     "labelEn": "Events / activations",
+     "monthly": 110000
+    }
+   ],
+   "monthlyTotal": 770000,
+   "annualTotal": 9240000
+  },
+  "existingChargesMonthly": 2895000,
+  "existingChargesAnnual": 34740000,
+  "recruitment": {
+   "positions": [
+    {
+     "title": "Responsable Commercial",
+     "level": "Direction",
+     "city": "Lomé",
+     "salary": 1500000,
+     "hireMonth": 2,
+     "titleEn": "Sales Manager",
+     "levelEn": "Management"
+    },
+    {
+     "title": "Commercial senior",
+     "level": "Encadrement",
+     "city": "Lomé",
+     "salary": 280000,
+     "hireMonth": 1,
+     "titleEn": "Senior Sales Rep",
+     "levelEn": "Supervisory"
+    },
+    {
+     "title": "Magasinier",
+     "level": "Encadrement",
+     "city": "Lomé",
+     "salary": 150000,
+     "hireMonth": 3,
+     "titleEn": "Warehouse Clerk",
+     "levelEn": "Supervisory"
+    },
+    {
+     "title": "Magasinier",
+     "level": "Encadrement",
+     "city": "Kara",
+     "salary": 150000,
+     "hireMonth": 1,
+     "titleEn": "Warehouse Clerk",
+     "levelEn": "Supervisory"
+    },
+    {
+     "title": "Commercial Junior",
+     "level": "opérationnel",
+     "city": "Lomé",
+     "salary": 120000,
+     "hireMonth": 1,
+     "titleEn": "Junior Sales Rep",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Chauffeur",
+     "level": "opérationnel",
+     "city": null,
+     "salary": 120000,
+     "hireMonth": 3,
+     "titleEn": "Driver",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Comptable",
+     "level": "Encadrement",
+     "city": "Lomé",
+     "salary": 100000,
+     "hireMonth": 3,
+     "titleEn": "Accountant",
+     "levelEn": "Supervisory"
+    }
+   ],
+   "monthlyOnceFull": 2420000,
+   "annualFull": 29040000,
+   "totalPositionsInPlan": 6,
+   "note": ""
+  },
+  "monthly": [
+   {
+    "month": "Sept-26",
+    "monthEn": "Sep-26",
+    "monthKey": "2026-09",
+    "cartons": 2951.9880000000003,
+    "revenueRodis": 38243010,
+    "revenueDistributor": 51245633.39999999,
+    "existingCharges": 2895000,
+    "recruitmentCum": 550000,
+    "marketingBudget": 770000,
+    "opex": 512456.3339999999,
+    "logisticsCost": 8413462.2,
+    "totalCharges": 13140918.534,
+    "netResult": 38104714.86599999,
+    "profit": -138295.1340000108
+   },
+   {
+    "month": "Oct-26",
+    "monthEn": "Oct-26",
+    "monthKey": "2026-10",
+    "cartons": 3223.5708960000006,
+    "revenueRodis": 41761366.92000001,
+    "revenueDistributor": 55960231.672800004,
+    "existingCharges": 2895000,
+    "recruitmentCum": 2050000,
+    "marketingBudget": 770000,
+    "opex": 559602.3167280001,
+    "logisticsCost": 9187500.722400002,
+    "totalCharges": 15462103.039128002,
+    "netResult": 40498128.633672,
+    "profit": -1263238.2863280103
+   },
+   {
+    "month": "Nov-26",
+    "monthEn": "Nov-26",
+    "monthKey": "2026-11",
+    "cartons": 3520.139418432001,
+    "revenueRodis": 45603412.67664001,
+    "revenueDistributor": 61108572.98669761,
+    "existingCharges": 2895000,
+    "recruitmentCum": 2420000,
+    "marketingBudget": 770000,
+    "opex": 611085.729866976,
+    "logisticsCost": 10032750.788860803,
+    "totalCharges": 16728836.51872778,
+    "netResult": 44379736.46796983,
+    "profit": -1223676.208670184
+   },
+   {
+    "month": "Déc-26",
+    "monthEn": "Dec-26",
+    "monthKey": "2026-12",
+    "cartons": 3843.992244927745,
+    "revenueRodis": 49798926.64289089,
+    "revenueDistributor": 66730561.70147379,
+    "existingCharges": 2895000,
+    "recruitmentCum": 2420000,
+    "marketingBudget": 770000,
+    "opex": 667305.6170147379,
+    "logisticsCost": 10955763.861435996,
+    "totalCharges": 17708069.478450734,
+    "netResult": 49022492.22302306,
+    "profit": -776434.4198678359
+   },
+   {
+    "month": "Jan-27",
+    "monthEn": "Jan-27",
+    "monthKey": "2027-01",
+    "cartons": 4197.639531461098,
+    "revenueRodis": 54380427.89403686,
+    "revenueDistributor": 72869773.37800938,
+    "existingCharges": 2895000,
+    "recruitmentCum": 2420000,
+    "marketingBudget": 770000,
+    "opex": 728697.7337800938,
+    "logisticsCost": 11963694.13668811,
+    "totalCharges": 18777391.870468203,
+    "netResult": 54092381.50754118,
+    "profit": -288046.3864956796
+   },
+   {
+    "month": "Fév-27",
+    "monthEn": "Feb-27",
+    "monthKey": "2027-02",
+    "cartons": 4583.82236835552,
+    "revenueRodis": 59383427.26028826,
+    "revenueDistributor": 79573792.52878626,
+    "existingCharges": 2895000,
+    "recruitmentCum": 2420000,
+    "marketingBudget": 770000,
+    "opex": 795737.9252878625,
+    "logisticsCost": 13064353.997263417,
+    "totalCharges": 19945091.922551278,
+    "netResult": 59628700.60623498,
+    "profit": 245273.34594672173
+   },
+   {
+    "month": "Mar-27",
+    "monthEn": "Mar-27",
+    "monthKey": "2027-03",
+    "cartons": 5005.534026244228,
+    "revenueRodis": 64846702.56823479,
+    "revenueDistributor": 86894581.4414346,
+    "existingCharges": 2895000,
+    "recruitmentCum": 2420000,
+    "marketingBudget": 770000,
+    "opex": 868945.8144143461,
+    "logisticsCost": 14266274.565011652,
+    "totalCharges": 21220220.379425995,
+    "netResult": 65674361.06200861,
+    "profit": 827658.4937738255
+   },
+   {
+    "month": "Avr-27",
+    "monthEn": "Apr-27",
+    "monthKey": "2027-04",
+    "cartons": 5466.043156658697,
+    "revenueRodis": 70812599.20451239,
+    "revenueDistributor": 94888882.9340466,
+    "existingCharges": 2895000,
+    "recruitmentCum": 2420000,
+    "marketingBudget": 770000,
+    "opex": 948888.829340466,
+    "logisticsCost": 15578771.824992726,
+    "totalCharges": 22612660.65433319,
+    "netResult": 72276222.2797134,
+    "profit": 1463623.0752010196
+   },
+   {
+    "month": "Mai-27",
+    "monthEn": "May-27",
+    "monthKey": "2027-05",
+    "cartons": 5968.919127071298,
+    "revenueRodis": 77327358.33132754,
+    "revenueDistributor": 103618660.16397889,
+    "existingCharges": 2895000,
+    "recruitmentCum": 2420000,
+    "marketingBudget": 770000,
+    "opex": 1036186.601639789,
+    "logisticsCost": 17012018.83289206,
+    "totalCharges": 24133205.43453185,
+    "netResult": 79485454.72944704,
+    "profit": 2158096.3981194943
+   },
+   {
+    "month": "Juin-27",
+    "monthEn": "Jun-27",
+    "monthKey": "2027-06",
+    "cartons": 6518.059686761858,
+    "revenueRodis": 84441475.29780968,
+    "revenueDistributor": 113151576.89906496,
+    "existingCharges": 2895000,
+    "recruitmentCum": 2420000,
+    "marketingBudget": 770000,
+    "opex": 1131515.7689906496,
+    "logisticsCost": 18577124.56551813,
+    "totalCharges": 25793640.33450878,
+    "netResult": 87357936.56455618,
+    "profit": 2916461.266746506
+   },
+   {
+    "month": "Juil-27",
+    "monthEn": "Jul-27",
+    "monthKey": "2027-07",
+    "cartons": 7117.72117794395,
+    "revenueRodis": 92210091.02520819,
+    "revenueDistributor": 123561521.97377896,
+    "existingCharges": 2895000,
+    "recruitmentCum": 2420000,
+    "marketingBudget": 770000,
+    "opex": 1235615.2197377896,
+    "logisticsCost": 20286220.025545802,
+    "totalCharges": 27606835.245283592,
+    "netResult": 95954686.72849537,
+    "profit": 3744595.7032871842
+   },
+   {
+    "month": "Août-27",
+    "monthEn": "Aug-27",
+    "monthKey": "2027-08",
+    "cartons": 7772.551526314794,
+    "revenueRodis": 100693419.39952734,
+    "revenueDistributor": 134929181.99536663,
+    "existingCharges": 2895000,
+    "recruitmentCum": 2420000,
+    "marketingBudget": 770000,
+    "opex": 1349291.8199536663,
+    "logisticsCost": 22152552.267896015,
+    "totalCharges": 29586844.08784968,
+    "netResult": 105342337.90751696,
+    "profit": 4648918.507989615
+   }
+  ],
+  "totals": {
+   "cartons": 60169.9811601712,
+   "revenueRodis": 779502217.220476,
+   "revenueDistributor": 1044532971.0754375,
+   "existingCharges": 34740000,
+   "recruitmentCum": 26800000,
+   "marketingBudget": 9240000,
+   "opex": 10445329.710754378,
+   "logisticsCost": 171490487.78850472,
+   "totalCharges": 252715817.49925908,
+   "netResult": 791817153.5761786,
+   "profit": 12314936.355702646
+  },
+  "creditLine": {
+   "outstanding": 289335569,
+   "proposedCeiling": 400000000,
+   "availableMargin": 110664431,
+   "utilizationRate": 0.7233389225
+  }
+ },
+ "cotedivoire": {
+  "id": "cotedivoire",
+  "countryFr": "Côte d'Ivoire",
+  "countryEn": "Côte d'Ivoire",
+  "flag": "🇨🇮",
+  "entity": "Rodis Côte d'Ivoire",
+  "distributor": "Galaxy Distribution",
+  "currency": "XOF",
+  "currencyNote": "Franc CFA (UEMOA)",
+  "periodFr": "Septembre 2026 – Août 2027",
+  "periodEn": "September 2026 – August 2027",
+  "objectiveAnnual": 750000000,
+  "objectiveMonthly": 62500000,
+  "ytdCartons2026": 10028,
+  "ytdRevenue2026": 118905200,
+  "monthsElapsed2026": 7,
+  "runRateMonthly": 16986457.14285714,
+  "avgPricePerCarton": 11857.319505384923,
+  "runRateCartons": 1432.5714285714284,
+  "growthRateRequired": 0.19,
+  "citySplit": [
+   {
+    "city": "Abidjan",
+    "cityEn": "Abidjan",
+    "share": 0.7
+   },
+   {
+    "city": "Bouaké / intérieur",
+    "cityEn": "Bouaké / interior",
+    "share": 0.30000000000000004
+   }
+  ],
+  "marketing": {
+   "items": [
+    {
+     "labelFr": "Publicité digitale",
+     "labelEn": "Digital advertising",
+     "monthly": 700000
+    },
+    {
+     "labelFr": "Promotions & échantillonnage terrain",
+     "labelEn": "Promotions & field sampling",
+     "monthly": 600000
+    },
+    {
+     "labelFr": "PLV / supports point de vente",
+     "labelEn": "POS materials",
+     "monthly": 300000
+    },
+    {
+     "labelFr": "Événements / activations",
+     "labelEn": "Events / activations",
+     "monthly": 300000
+    }
+   ],
+   "monthlyTotal": 2090000,
+   "annualTotal": 25080000
+  },
+  "existingChargesMonthly": 1660000,
+  "existingChargesAnnual": 19920000,
+  "recruitment": {
+   "positions": [
+    {
+     "title": "Responsable Commercial",
+     "level": "Direction",
+     "city": "Abidjan",
+     "salary": 1500000,
+     "hireMonth": 1,
+     "titleEn": "Sales Manager",
+     "levelEn": "Management"
+    },
+    {
+     "title": "Comptable",
+     "level": "Encadrement",
+     "city": "Abidjan",
+     "salary": 175000,
+     "hireMonth": 5,
+     "titleEn": "Accountant",
+     "levelEn": "Supervisory"
+    },
+    {
+     "title": "Commercial senior",
+     "level": "Encadrement",
+     "city": "Abidjan",
+     "salary": 300000,
+     "hireMonth": 1,
+     "titleEn": "Senior Sales Rep",
+     "levelEn": "Supervisory"
+    },
+    {
+     "title": "Magasinier",
+     "level": "Encadrement",
+     "city": "Bouaké",
+     "salary": 300000,
+     "hireMonth": 1,
+     "titleEn": "Warehouse Clerk",
+     "levelEn": "Supervisory"
+    },
+    {
+     "title": "Assistant RH & Admin",
+     "level": "Personnel opérationnel",
+     "city": "Abidjan",
+     "salary": 150000,
+     "hireMonth": 8,
+     "titleEn": "HR & Admin Assistant",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Caissière",
+     "level": "Personnel opérationnel",
+     "city": "Abidjan",
+     "salary": 150000,
+     "hireMonth": 6,
+     "titleEn": "Cashier",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Commercial Junior",
+     "level": "Personnel opérationnel",
+     "city": "Abidjan",
+     "salary": 130000,
+     "hireMonth": 1,
+     "titleEn": "Junior Sales Rep",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Commercial Junior",
+     "level": "Personnel opérationnel",
+     "city": "Bouaké",
+     "salary": 130000,
+     "hireMonth": 1,
+     "titleEn": "Junior Sales Rep",
+     "levelEn": "Operational staff"
+    }
+   ],
+   "monthlyOnceFull": 2835000,
+   "annualFull": 34020000,
+   "totalPositionsInPlan": 11,
+   "note": "8 postes détaillés dans le plan financier ; total 11 postes prévus dans Structure_Optimal."
+  },
+  "monthly": [
+   {
+    "month": "Sept-26",
+    "monthEn": "Sep-26",
+    "monthKey": "2026-09",
+    "cartons": 1704.7599999999998,
+    "revenueRodis": 20213884,
+    "revenueDistributor": 27895159.919999998,
+    "existingCharges": 1660000,
+    "recruitmentCum": 2360000,
+    "marketingBudget": 2090000,
+    "opex": 1000000,
+    "logisticsCost": 4649193.32,
+    "totalCharges": 11759193.32,
+    "netResult": 16135966.599999998,
+    "profit": -4077917.4000000022
+   },
+   {
+    "month": "Oct-26",
+    "monthEn": "Oct-26",
+    "monthKey": "2026-10",
+    "cartons": 2028.6643999999997,
+    "revenueRodis": 24054521.959999997,
+    "revenueDistributor": 33195240.304799993,
+    "existingCharges": 1660000,
+    "recruitmentCum": 2360000,
+    "marketingBudget": 2090000,
+    "opex": 1000000,
+    "logisticsCost": 5532540.050799999,
+    "totalCharges": 12642540.0508,
+    "netResult": 20552700.253999993,
+    "profit": -3501821.706000004
+   },
+   {
+    "month": "Nov-26",
+    "monthEn": "Nov-26",
+    "monthKey": "2026-11",
+    "cartons": 2414.1106359999994,
+    "revenueRodis": 28624881.132399995,
+    "revenueDistributor": 39502335.96271199,
+    "existingCharges": 1660000,
+    "recruitmentCum": 2360000,
+    "marketingBudget": 2090000,
+    "opex": 1000000,
+    "logisticsCost": 6583722.660451999,
+    "totalCharges": 13693722.660451999,
+    "netResult": 25808613.30225999,
+    "profit": -2816267.830140006
+   },
+   {
+    "month": "Déc-26",
+    "monthEn": "Dec-26",
+    "monthKey": "2026-12",
+    "cartons": 2872.7916568399996,
+    "revenueRodis": 34063608.547556,
+    "revenueDistributor": 47007779.79562727,
+    "existingCharges": 1660000,
+    "recruitmentCum": 2360000,
+    "marketingBudget": 2090000,
+    "opex": 1000000,
+    "logisticsCost": 7834629.96593788,
+    "totalCharges": 14944629.965937879,
+    "netResult": 32063149.829689395,
+    "profit": -2000458.7178666033
+   },
+   {
+    "month": "Jan-27",
+    "monthEn": "Jan-27",
+    "monthKey": "2027-01",
+    "cartons": 3418.622071639599,
+    "revenueRodis": 40535694.17159163,
+    "revenueDistributor": 55939257.956796445,
+    "existingCharges": 1660000,
+    "recruitmentCum": 2535000,
+    "marketingBudget": 2090000,
+    "opex": 1000000,
+    "logisticsCost": 9323209.659466077,
+    "totalCharges": 16608209.659466077,
+    "netResult": 39331048.297330365,
+    "profit": -1204645.8742612675
+   },
+   {
+    "month": "Fév-27",
+    "monthEn": "Feb-27",
+    "monthKey": "2027-02",
+    "cartons": 4068.160265251123,
+    "revenueRodis": 48237476.06419404,
+    "revenueDistributor": 66567716.96858777,
+    "existingCharges": 1660000,
+    "recruitmentCum": 2685000,
+    "marketingBudget": 2090000,
+    "opex": 1000000,
+    "logisticsCost": 11094619.49476463,
+    "totalCharges": 18529619.49476463,
+    "netResult": 48038097.473823145,
+    "profit": -199378.59037089348
+   },
+   {
+    "month": "Mar-27",
+    "monthEn": "Mar-27",
+    "monthKey": "2027-03",
+    "cartons": 4841.110715648836,
+    "revenueRodis": 57402596.516390905,
+    "revenueDistributor": 79215583.19261944,
+    "existingCharges": 1660000,
+    "recruitmentCum": 2685000,
+    "marketingBudget": 2090000,
+    "opex": 1000000,
+    "logisticsCost": 13202597.198769908,
+    "totalCharges": 20637597.19876991,
+    "netResult": 58577985.99384953,
+    "profit": 1175389.477458626
+   },
+   {
+    "month": "Avr-27",
+    "monthEn": "Apr-27",
+    "monthKey": "2027-04",
+    "cartons": 5760.921751622116,
+    "revenueRodis": 68309089.8545052,
+    "revenueDistributor": 94266543.99921717,
+    "existingCharges": 1660000,
+    "recruitmentCum": 2835000,
+    "marketingBudget": 2090000,
+    "opex": 1000000,
+    "logisticsCost": 15711090.666536195,
+    "totalCharges": 23296090.666536197,
+    "netResult": 70970453.33268097,
+    "profit": 2661363.478175774
+   },
+   {
+    "month": "Mai-27",
+    "monthEn": "May-27",
+    "monthKey": "2027-05",
+    "cartons": 6855.496884430317,
+    "revenueRodis": 81287816.92686117,
+    "revenueDistributor": 112177187.35906841,
+    "existingCharges": 1660000,
+    "recruitmentCum": 2835000,
+    "marketingBudget": 2090000,
+    "opex": 1000000,
+    "logisticsCost": 18696197.893178068,
+    "totalCharges": 26281197.893178068,
+    "netResult": 85895989.46589035,
+    "profit": 4608172.539029181
+   },
+   {
+    "month": "Juin-27",
+    "monthEn": "Jun-27",
+    "monthKey": "2027-06",
+    "cartons": 8158.041292472078,
+    "revenueRodis": 96732502.1429648,
+    "revenueDistributor": 133490852.95729141,
+    "existingCharges": 1660000,
+    "recruitmentCum": 2835000,
+    "marketingBudget": 2090000,
+    "opex": 1000000,
+    "logisticsCost": 22248475.492881905,
+    "totalCharges": 29833475.492881905,
+    "netResult": 103657377.4644095,
+    "profit": 6924875.321444705
+   },
+   {
+    "month": "Juil-27",
+    "monthEn": "Jul-27",
+    "monthKey": "2027-07",
+    "cartons": 9708.069138041772,
+    "revenueRodis": 115111677.5501281,
+    "revenueDistributor": 158854115.01917678,
+    "existingCharges": 1660000,
+    "recruitmentCum": 2835000,
+    "marketingBudget": 2090000,
+    "opex": 1000000,
+    "logisticsCost": 26475685.836529464,
+    "totalCharges": 34060685.83652946,
+    "netResult": 124793429.18264732,
+    "profit": 9681751.632519215
+   },
+   {
+    "month": "Août-27",
+    "monthEn": "Aug-27",
+    "monthKey": "2027-08",
+    "cartons": 11552.60227426971,
+    "revenueRodis": 136982896.28465244,
+    "revenueDistributor": 189036396.87282035,
+    "existingCharges": 1660000,
+    "recruitmentCum": 2835000,
+    "marketingBudget": 2090000,
+    "opex": 1000000,
+    "logisticsCost": 31506066.145470064,
+    "totalCharges": 39091066.14547007,
+    "netResult": 149945330.7273503,
+    "profit": 12962434.442697853
+   }
+  ],
+  "totals": {
+   "cartons": 63383.35108621555,
+   "revenueRodis": 751556645.1512443,
+   "revenueDistributor": 1037148170.308717,
+   "existingCharges": 19920000,
+   "recruitmentCum": 31520000,
+   "marketingBudget": 25080000,
+   "opex": 12000000,
+   "logisticsCost": 172858028.38478616,
+   "totalCharges": 261378028.3847862,
+   "netResult": 775770141.9239309,
+   "profit": 24213496.77268658
+  },
+  "creditLine": {
+   "outstanding": 170513750,
+   "proposedCeiling": 350000000,
+   "availableMargin": 179486250,
+   "utilizationRate": 0.48718214285714284
+  }
+ },
+ "mali": {
+  "id": "mali",
+  "countryFr": "Mali",
+  "countryEn": "Mali",
+  "flag": "🇲🇱",
+  "entity": "Rodis Mali",
+  "distributor": "Afriglow",
+  "currency": "XOF",
+  "currencyNote": "Franc CFA (UEMOA)",
+  "periodFr": "Octobre 2026 – Septembre 2027",
+  "periodEn": "October 2026 – September 2027",
+  "objectiveAnnual": 1200000000,
+  "objectiveMonthly": 100000000,
+  "ytdCartons2026": 14914,
+  "ytdRevenue2026": 419002600,
+  "monthsElapsed2026": 7,
+  "runRateMonthly": 59857514.28571428,
+  "avgPricePerCarton": 28094.58227169103,
+  "runRateCartons": null,
+  "growthRateRequired": 0.09,
+  "citySplit": [],
+  "marketing": {
+   "items": [
+    {
+     "labelFr": "Publicité digitale",
+     "labelEn": "Digital advertising",
+     "monthly": 250000
+    },
+    {
+     "labelFr": "Promotions & échantillonnage terrain",
+     "labelEn": "Promotions & field sampling",
+     "monthly": 200000
+    },
+    {
+     "labelFr": "PLV / supports point de vente",
+     "labelEn": "POS materials",
+     "monthly": 150000
+    },
+    {
+     "labelFr": "Communication locale",
+     "labelEn": "Local media",
+     "monthly": 150000
+    },
+    {
+     "labelFr": "Événements / activations",
+     "labelEn": "Events / activations",
+     "monthly": 150000
+    }
+   ],
+   "monthlyTotal": 990000,
+   "annualTotal": 11880000
+  },
+  "existingChargesMonthly": 5620000,
+  "existingChargesAnnual": 67440000,
+  "recruitment": {
+   "positions": [
+    {
+     "title": "Magasinier",
+     "level": "Direction",
+     "city": "Bamako",
+     "salary": 300000,
+     "hireMonth": 5,
+     "titleEn": "Warehouse Clerk",
+     "levelEn": "Management"
+    },
+    {
+     "title": "Commercial senior",
+     "level": "Encadrement",
+     "city": "Bamako",
+     "salary": 200000,
+     "hireMonth": 1,
+     "titleEn": "Senior Sales Rep",
+     "levelEn": "Supervisory"
+    },
+    {
+     "title": "Comptable",
+     "level": "Encadrement",
+     "city": "Bamako",
+     "salary": 120000,
+     "hireMonth": 3,
+     "titleEn": "Accountant",
+     "levelEn": "Supervisory"
+    },
+    {
+     "title": "Commercial Junior 1",
+     "level": "Personnel opérationnel",
+     "city": "Bamako",
+     "salary": 125000,
+     "hireMonth": 1,
+     "titleEn": "Junior Sales Rep 1",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Commercial Junior 2",
+     "level": "Personnel opérationnel",
+     "city": "Bamako",
+     "salary": 125000,
+     "hireMonth": 1,
+     "titleEn": "Junior Sales Rep 2",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Commercial Junior 3",
+     "level": "Personnel opérationnel",
+     "city": "Bamako",
+     "salary": 125000,
+     "hireMonth": 3,
+     "titleEn": "Junior Sales Rep 3",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Commercial Junior 4",
+     "level": "Personnel opérationnel",
+     "city": "Bamako",
+     "salary": 125000,
+     "hireMonth": 3,
+     "titleEn": "Junior Sales Rep 4",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Chauffeur 1",
+     "level": "Personnel opérationnel",
+     "city": "Bamako",
+     "salary": 120000,
+     "hireMonth": 1,
+     "titleEn": "Driver 1",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Chauffeur 2",
+     "level": "Personnel opérationnel",
+     "city": "Bamako",
+     "salary": 120000,
+     "hireMonth": 3,
+     "titleEn": "Driver 2",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Sécurité",
+     "level": "Personnel opérationnel",
+     "city": "Bamako",
+     "salary": 80000,
+     "hireMonth": 3,
+     "titleEn": "Security Guard",
+     "levelEn": "Operational staff"
+    }
+   ],
+   "monthlyOnceFull": 1440000,
+   "annualFull": 17280000,
+   "totalPositionsInPlan": 11,
+   "note": ""
+  },
+  "monthly": [
+   {
+    "month": "Oct-26",
+    "monthEn": "Oct-26",
+    "monthKey": "2026-10",
+    "cartons": null,
+    "revenueRodis": 59857514.28571428,
+    "revenueDistributor": 80807644.28571427,
+    "existingCharges": 5620000,
+    "recruitmentCum": 570000,
+    "marketingBudget": 990000,
+    "opex": 404038.2214285713,
+    "logisticsCost": 11971502.857142858,
+    "investment": null,
+    "totalCharges": 19555541.07857143,
+    "netResult": 61252103.20714284,
+    "profit": 1394588.9214285538
+   },
+   {
+    "month": "Nov-26",
+    "monthEn": "Nov-26",
+    "monthKey": "2026-11",
+    "cartons": null,
+    "revenueRodis": 65244690.571428575,
+    "revenueDistributor": 88080332.27142857,
+    "existingCharges": 5620000,
+    "recruitmentCum": 570000,
+    "marketingBudget": 990000,
+    "opex": 440401.66135714285,
+    "logisticsCost": 13048938.114285715,
+    "investment": 2000000,
+    "totalCharges": 22669339.775642857,
+    "netResult": 65410992.49578571,
+    "profit": 166301.92435713857
+   },
+   {
+    "month": "Déc-26",
+    "monthEn": "Dec-26",
+    "monthKey": "2026-12",
+    "cartons": null,
+    "revenueRodis": 71116712.72285715,
+    "revenueDistributor": 96007562.17585714,
+    "existingCharges": 5620000,
+    "recruitmentCum": 1140000,
+    "marketingBudget": 990000,
+    "opex": 480037.81087928574,
+    "logisticsCost": 14223342.54457143,
+    "investment": null,
+    "totalCharges": 22453380.355450716,
+    "netResult": 73554181.82040642,
+    "profit": 2437469.0975492746
+   },
+   {
+    "month": "Jan-27",
+    "monthEn": "Jan-27",
+    "monthKey": "2027-01",
+    "cartons": null,
+    "revenueRodis": 77517216.86791429,
+    "revenueDistributor": 104648242.77168427,
+    "existingCharges": 5620000,
+    "recruitmentCum": 1140000,
+    "marketingBudget": 990000,
+    "opex": 523241.21385842137,
+    "logisticsCost": 15503443.373582859,
+    "investment": null,
+    "totalCharges": 23776684.58744128,
+    "netResult": 80871558.184243,
+    "profit": 3354341.3163287044
+   },
+   {
+    "month": "Fév-27",
+    "monthEn": "Feb-27",
+    "monthKey": "2027-02",
+    "cartons": null,
+    "revenueRodis": 84493766.38602659,
+    "revenueDistributor": 114066584.62113589,
+    "existingCharges": 5620000,
+    "recruitmentCum": 1440000,
+    "marketingBudget": 990000,
+    "opex": 570332.9231056795,
+    "logisticsCost": 16898753.27720532,
+    "investment": 2000000,
+    "totalCharges": 27519086.200310998,
+    "netResult": 86547498.42082489,
+    "profit": 2053732.0347982943
+   },
+   {
+    "month": "Mar-27",
+    "monthEn": "Mar-27",
+    "monthKey": "2027-03",
+    "cartons": null,
+    "revenueRodis": 92098205.36076899,
+    "revenueDistributor": 124332577.23703812,
+    "existingCharges": 5620000,
+    "recruitmentCum": 1440000,
+    "marketingBudget": 990000,
+    "opex": 621662.8861851906,
+    "logisticsCost": 18419641.0721538,
+    "investment": null,
+    "totalCharges": 27091303.95833899,
+    "netResult": 97241273.27869913,
+    "profit": 5143067.917930141
+   },
+   {
+    "month": "Avr-27",
+    "monthEn": "Apr-27",
+    "monthKey": "2027-04",
+    "cartons": null,
+    "revenueRodis": 100387043.8432382,
+    "revenueDistributor": 135522509.18837157,
+    "existingCharges": 5620000,
+    "recruitmentCum": 1440000,
+    "marketingBudget": 990000,
+    "opex": 677612.5459418579,
+    "logisticsCost": 20077408.76864764,
+    "investment": null,
+    "totalCharges": 28805021.3145895,
+    "netResult": 106717487.87378207,
+    "profit": 6330444.030543864
+   },
+   {
+    "month": "Mai-27",
+    "monthEn": "May-27",
+    "monthKey": "2027-05",
+    "cartons": null,
+    "revenueRodis": 109421877.78912964,
+    "revenueDistributor": 147719535.015325,
+    "existingCharges": 5620000,
+    "recruitmentCum": 1440000,
+    "marketingBudget": 990000,
+    "opex": 738597.6750766251,
+    "logisticsCost": 21884375.55782593,
+    "investment": null,
+    "totalCharges": 30672973.232902557,
+    "netResult": 117046561.78242245,
+    "profit": 7624683.9932928085
+   },
+   {
+    "month": "Juin-27",
+    "monthEn": "Jun-27",
+    "monthKey": "2027-06",
+    "cartons": null,
+    "revenueRodis": 119269846.79015131,
+    "revenueDistributor": 161014293.16670427,
+    "existingCharges": 5620000,
+    "recruitmentCum": 1440000,
+    "marketingBudget": 990000,
+    "opex": 805071.4658335213,
+    "logisticsCost": 23853969.358030263,
+    "investment": null,
+    "totalCharges": 32709040.823863782,
+    "netResult": 128305252.3428405,
+    "profit": 9035405.55268918
+   },
+   {
+    "month": "Juil-27",
+    "monthEn": "Jul-27",
+    "monthKey": "2027-07",
+    "cartons": null,
+    "revenueRodis": 130004133.00126494,
+    "revenueDistributor": 175505579.55170766,
+    "existingCharges": 5620000,
+    "recruitmentCum": 1440000,
+    "marketingBudget": 990000,
+    "opex": 877527.8977585383,
+    "logisticsCost": 26000826.60025299,
+    "investment": null,
+    "totalCharges": 34928354.49801153,
+    "netResult": 140577225.05369613,
+    "profit": 10573092.052431181
+   },
+   {
+    "month": "Août-27",
+    "monthEn": "Aug-27",
+    "monthKey": "2027-08",
+    "cartons": null,
+    "revenueRodis": 141704504.9713788,
+    "revenueDistributor": 191301081.71136138,
+    "existingCharges": 5620000,
+    "recruitmentCum": 1440000,
+    "marketingBudget": 990000,
+    "opex": 956505.4085568069,
+    "logisticsCost": 28340900.994275764,
+    "investment": null,
+    "totalCharges": 37347406.40283257,
+    "netResult": 153953675.3085288,
+    "profit": 12249170.337150007
+   },
+   {
+    "month": "Sept-27",
+    "monthEn": "Sep-27",
+    "monthKey": "2027-09",
+    "cartons": null,
+    "revenueRodis": 154457910.4188029,
+    "revenueDistributor": 208518179.06538388,
+    "existingCharges": 5620000,
+    "recruitmentCum": 1440000,
+    "marketingBudget": 990000,
+    "opex": 1042590.8953269194,
+    "logisticsCost": 30891582.08376058,
+    "investment": null,
+    "totalCharges": 39984172.9790875,
+    "netResult": 168534006.08629638,
+    "profit": 14076095.667493492
+   }
+  ],
+  "totals": {
+   "cartons": null,
+   "revenueRodis": 1205573423.0086756,
+   "revenueDistributor": 1627524121.061712,
+   "existingCharges": 67440000,
+   "recruitmentCum": 14940000,
+   "marketingBudget": 11880000,
+   "opex": 8137620.605308561,
+   "logisticsCost": 241114684.60173514,
+   "investment": 4000000,
+   "totalCharges": 347512305.20704365,
+   "netResult": 1280011815.8546684,
+   "profit": 74438392.84599264
+  },
+  "creditLine": {
+   "outstanding": 537391846,
+   "proposedCeiling": 650000000,
+   "availableMargin": 112608154,
+   "utilizationRate": 0.8267566861538461
+  }
+ },
+ "congo": {
+  "id": "congo",
+  "countryFr": "Congo Brazzaville",
+  "countryEn": "Congo Brazzaville",
+  "flag": "🇨🇬",
+  "entity": "Rodis Congo Brazzaville",
+  "distributor": "Afroluxe",
+  "currency": "XAF",
+  "currencyNote": "Franc CFA (CEMAC)",
+  "periodFr": "Septembre 2026 – Août 2027",
+  "periodEn": "September 2026 – August 2027",
+  "objectiveAnnual": 600000000,
+  "objectiveMonthly": 50000000,
+  "ytdCartons2026": 5119,
+  "ytdRevenue2026": 114628540,
+  "monthsElapsed2026": 4,
+  "runRateMonthly": 28657135,
+  "avgPricePerCarton": 22392.760304747022,
+  "runRateCartons": 1279.75,
+  "growthRateRequired": 0.085,
+  "citySplit": [],
+  "marketing": {
+   "items": [
+    {
+     "labelFr": "Publicité digitale",
+     "labelEn": "Digital advertising",
+     "monthly": 300000
+    },
+    {
+     "labelFr": "Promotions & échantillonnage terrain",
+     "labelEn": "Promotions & field sampling",
+     "monthly": 100000
+    },
+    {
+     "labelFr": "PLV / supports point de vente",
+     "labelEn": "POS materials",
+     "monthly": 100000
+    }
+   ],
+   "monthlyTotal": 550000,
+   "annualTotal": 6600000
+  },
+  "existingChargesMonthly": 4369833.333333333,
+  "existingChargesAnnual": 52438000.0,
+  "investmentOneOff": 5000000,
+  "recruitment": {
+   "positions": [
+    {
+     "title": "Responsable Commercial",
+     "level": "Direction",
+     "city": "",
+     "salary": 1500000,
+     "hireMonth": 6,
+     "titleEn": "Sales Manager",
+     "levelEn": "Management"
+    },
+    {
+     "title": "Commercial senior — Pointe-Noire",
+     "level": "Encadrement",
+     "city": "",
+     "salary": 250000,
+     "hireMonth": 2,
+     "titleEn": "Senior Sales Rep — Pointe-Noire",
+     "levelEn": "Supervisory"
+    },
+    {
+     "title": "Commercial Junior — Ouesso",
+     "level": "Personnel opérationnel",
+     "city": "",
+     "salary": 125000,
+     "hireMonth": 3,
+     "titleEn": "Junior Sales Rep — Ouesso",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Commercial Junior — Brazza (1)",
+     "level": "Personnel opérationnel",
+     "city": "",
+     "salary": 125000,
+     "hireMonth": 2,
+     "titleEn": "Junior Sales Rep — Brazzaville (1)",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Commercial Junior — Brazza (2)",
+     "level": "Personnel opérationnel",
+     "city": "",
+     "salary": 125000,
+     "hireMonth": 4,
+     "titleEn": "Junior Sales Rep — Brazzaville (2)",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Ouvrier Dépôt",
+     "level": "Personnel opérationnel",
+     "city": "",
+     "salary": 100000,
+     "hireMonth": 2,
+     "titleEn": "Warehouse Worker",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Sécurité",
+     "level": "Personnel opérationnel",
+     "city": "",
+     "salary": 130000,
+     "hireMonth": 3,
+     "titleEn": "Security Guard",
+     "levelEn": "Operational staff"
+    }
+   ],
+   "monthlyOnceFull": 2355000,
+   "annualFull": 28260000,
+   "totalPositionsInPlan": 9,
+   "note": ""
+  },
+  "monthly": [
+   {
+    "month": "Sept-26",
+    "monthEn": "Sep-26",
+    "monthKey": "2026-09",
+    "cartons": 1388.52875,
+    "revenueRodis": 31092991.475,
+    "revenueDistributor": 47416811.999375,
+    "existingCharges": 4369833.333333333,
+    "recruitmentCum": 0,
+    "marketingBudget": 550000,
+    "investment": 0,
+    "logisticsCost": 8861502.570375,
+    "totalCharges": 13781335.903708331,
+    "netResult": 33635476.09566667,
+    "profit": 2542484.620666668
+   },
+   {
+    "month": "Oct-26",
+    "monthEn": "Oct-26",
+    "monthKey": "2026-10",
+    "cartons": 1506.5536937499999,
+    "revenueRodis": 33735895.750374995,
+    "revenueDistributor": 51447241.01932187,
+    "existingCharges": 4369833.333333333,
+    "recruitmentCum": 475000,
+    "marketingBudget": 550000,
+    "investment": 0,
+    "logisticsCost": 9614730.288856873,
+    "totalCharges": 15009563.622190207,
+    "netResult": 36437677.39713166,
+    "profit": 2701781.646756664
+   },
+   {
+    "month": "Nov-26",
+    "monthEn": "Nov-26",
+    "monthKey": "2026-11",
+    "cartons": 1634.61075771875,
+    "revenueRodis": 36603446.88915688,
+    "revenueDistributor": 55820256.505964234,
+    "existingCharges": 4369833.333333333,
+    "recruitmentCum": 730000,
+    "marketingBudget": 550000,
+    "investment": 0,
+    "logisticsCost": 10431982.36340971,
+    "totalCharges": 16081815.696743041,
+    "netResult": 39738440.80922119,
+    "profit": 3134993.920064315
+   },
+   {
+    "month": "Déc-26",
+    "monthEn": "Dec-26",
+    "monthKey": "2026-12",
+    "cartons": 1773.5526721248436,
+    "revenueRodis": 39714739.87473521,
+    "revenueDistributor": 60564978.30897119,
+    "existingCharges": 4369833.333333333,
+    "recruitmentCum": 855000,
+    "marketingBudget": 550000,
+    "investment": 0,
+    "logisticsCost": 11318700.864299532,
+    "totalCharges": 17093534.197632864,
+    "netResult": 43471444.111338325,
+    "profit": 3756704.2366031185
+   },
+   {
+    "month": "Jan-27",
+    "monthEn": "Jan-27",
+    "monthKey": "2027-01",
+    "cartons": 1924.3046492554552,
+    "revenueRodis": 43090492.7640877,
+    "revenueDistributor": 65713001.465233736,
+    "existingCharges": 4369833.333333333,
+    "recruitmentCum": 855000,
+    "marketingBudget": 550000,
+    "investment": 0,
+    "logisticsCost": 12280790.437764993,
+    "totalCharges": 18055623.771098327,
+    "netResult": 47657377.69413541,
+    "profit": 4566884.930047713
+   },
+   {
+    "month": "Fév-27",
+    "monthEn": "Feb-27",
+    "monthKey": "2027-02",
+    "cartons": 2087.870544442169,
+    "revenueRodis": 46753184.649035156,
+    "revenueDistributor": 71298606.5897786,
+    "existingCharges": 4369833.333333333,
+    "recruitmentCum": 2355000,
+    "marketingBudget": 550000,
+    "investment": 5000000,
+    "logisticsCost": 13324657.624975018,
+    "totalCharges": 25599490.95830835,
+    "netResult": 45699115.63147025,
+    "profit": -1054069.0175649077
+   },
+   {
+    "month": "Mar-27",
+    "monthEn": "Mar-27",
+    "monthKey": "2027-03",
+    "cartons": 2265.3395407197536,
+    "revenueRodis": 50727205.34420315,
+    "revenueDistributor": 77358988.14990981,
+    "existingCharges": 4369833.333333333,
+    "recruitmentCum": 2355000,
+    "marketingBudget": 550000,
+    "investment": 0,
+    "logisticsCost": 14457253.523097897,
+    "totalCharges": 21732086.85643123,
+    "netResult": 55626901.29347858,
+    "profit": 4899695.949275427
+   },
+   {
+    "month": "Avr-27",
+    "monthEn": "Apr-27",
+    "monthKey": "2027-04",
+    "cartons": 2457.893401680932,
+    "revenueRodis": 55039017.7984604,
+    "revenueDistributor": 83934502.14265211,
+    "existingCharges": 4369833.333333333,
+    "recruitmentCum": 2355000,
+    "marketingBudget": 550000,
+    "investment": 0,
+    "logisticsCost": 15686120.072561214,
+    "totalCharges": 22960953.405894548,
+    "netResult": 60973548.73675756,
+    "profit": 5934530.93829716
+   },
+   {
+    "month": "Mai-27",
+    "monthEn": "May-27",
+    "monthKey": "2027-05",
+    "cartons": 2666.814340823811,
+    "revenueRodis": 59717334.311329536,
+    "revenueDistributor": 91068934.82477754,
+    "existingCharges": 4369833.333333333,
+    "recruitmentCum": 2355000,
+    "marketingBudget": 550000,
+    "investment": 0,
+    "logisticsCost": 17019440.278728917,
+    "totalCharges": 24294273.61206225,
+    "netResult": 66774661.2127153,
+    "profit": 7057326.901385762
+   },
+   {
+    "month": "Juin-27",
+    "monthEn": "Jun-27",
+    "monthKey": "2027-06",
+    "cartons": 2893.493559793835,
+    "revenueRodis": 64793307.727792546,
+    "revenueDistributor": 98809794.28488363,
+    "existingCharges": 4369833.333333333,
+    "recruitmentCum": 2355000,
+    "marketingBudget": 550000,
+    "investment": 0,
+    "logisticsCost": 18466092.702420875,
+    "totalCharges": 25740926.035754208,
+    "netResult": 73068868.24912943,
+    "profit": 8275560.521336883
+   },
+   {
+    "month": "Juil-27",
+    "monthEn": "Jul-27",
+    "monthKey": "2027-07",
+    "cartons": 3139.4405123763113,
+    "revenueRodis": 70300738.88465491,
+    "revenueDistributor": 107208626.79909873,
+    "existingCharges": 4369833.333333333,
+    "recruitmentCum": 2355000,
+    "marketingBudget": 550000,
+    "investment": 0,
+    "logisticsCost": 20035710.582126647,
+    "totalCharges": 27310543.91545998,
+    "netResult": 79898082.88363875,
+    "profit": 9597343.998983845
+   },
+   {
+    "month": "Août-27",
+    "monthEn": "Aug-27",
+    "monthKey": "2027-08",
+    "cartons": 3406.292955928297,
+    "revenueRodis": 76276301.68985057,
+    "revenueDistributor": 116321360.0770221,
+    "existingCharges": 4369833.333333333,
+    "recruitmentCum": 2355000,
+    "marketingBudget": 550000,
+    "investment": 0,
+    "logisticsCost": 21738745.98160741,
+    "totalCharges": 29013579.314940743,
+    "netResult": 87307780.76208135,
+    "profit": 11031479.072230786
+   }
+  ],
+  "totals": {
+   "cartons": 27144.695378614157,
+   "revenueRodis": 607844657.1586812,
+   "revenueDistributor": 926963102.1669885,
+   "existingCharges": 52438000.00000001,
+   "recruitmentCum": 19400000,
+   "marketingBudget": 6600000,
+   "investment": 5000000,
+   "logisticsCost": 173235727.2902241,
+   "totalCharges": 256673727.2902241,
+   "netResult": 670289374.8767645,
+   "profit": 62444717.718083434
+  },
+  "creditLine": {
+   "outstanding": 126259760,
+   "proposedCeiling": 200000000,
+   "availableMargin": 73740240,
+   "utilizationRate": 0.6312988
+  }
+ },
+ "niger": {
+  "id": "niger",
+  "countryFr": "Niger",
+  "countryEn": "Niger",
+  "flag": "🇳🇪",
+  "entity": "Rodis Niger",
+  "distributor": "ZAMA",
+  "currency": "XOF",
+  "currencyNote": "Franc CFA (UEMOA)",
+  "periodFr": "Septembre 2026 – Août 2027 (hypothèse : Mois 1 = Sept. 2026)",
+  "periodEn": "September 2026 – August 2027 (assumption: Month 1 = Sept. 2026)",
+  "periodAssumption": true,
+  "objectiveAnnual": 900000000,
+  "objectiveMonthly": 75000000,
+  "ytdCartons2026": null,
+  "ytdRevenue2026": 55000000,
+  "monthsElapsed2026": null,
+  "runRateMonthly": null,
+  "avgPricePerCarton": null,
+  "runRateCartons": null,
+  "growthRateRequired": 0.055,
+  "citySplit": [],
+  "trucksTargetPerYear": "9 camions",
+  "revenueObjectiveAlt": 700000000,
+  "clientPotential": [
+   {
+    "name": "Moussa Touré",
+    "potential": 200000000
+   },
+   {
+    "name": "Sidikou",
+    "potential": 150000000
+   },
+   {
+    "name": "Inoussa Idrissa",
+    "potential": 150000000
+   },
+   {
+    "name": "Daouda",
+    "potential": 50000000
+   },
+   {
+    "name": "Moussa Adamou",
+    "potential": 200000000
+   },
+   {
+    "name": "Modibo",
+    "potential": 150000000
+   },
+   {
+    "name": "Divers clients",
+    "potential": 100000000
+   }
+  ],
+  "marketing": {
+   "items": [
+    {
+     "labelFr": "Publicité digitale",
+     "labelEn": "Digital advertising",
+     "monthly": 300000
+    },
+    {
+     "labelFr": "Promotions & échantillonnage terrain",
+     "labelEn": "Promotions & field sampling",
+     "monthly": 150000
+    },
+    {
+     "labelFr": "PLV / supports point de vente",
+     "labelEn": "POS materials",
+     "monthly": 100000
+    },
+    {
+     "labelFr": "Événements / activations",
+     "labelEn": "Events / activations",
+     "monthly": 100000
+    }
+   ],
+   "monthlyTotal": 715000,
+   "annualTotal": 8580000
+  },
+  "existingChargesMonthly": 3743333.3333333335,
+  "existingChargesAnnual": 44920000.0,
+  "recruitment": {
+   "positions": [
+    {
+     "title": "Responsable Commercial",
+     "level": "Direction",
+     "city": "Niamey",
+     "salary": 1500000,
+     "hireMonth": 4,
+     "titleEn": "Sales Manager",
+     "levelEn": "Management"
+    },
+    {
+     "title": "Vendeuse Boutique",
+     "level": "Encadrement",
+     "city": "Niamey",
+     "salary": 150000,
+     "hireMonth": 1,
+     "titleEn": "Shop Sales Assistant",
+     "levelEn": "Supervisory"
+    },
+    {
+     "title": "Commercial (1)",
+     "level": "Personnel opérationnel",
+     "city": "Niamey",
+     "salary": 125000,
+     "hireMonth": 1,
+     "titleEn": "Sales Rep (1)",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Commercial (2)",
+     "level": "Personnel opérationnel",
+     "city": "Niamey",
+     "salary": 125000,
+     "hireMonth": 2,
+     "titleEn": "Sales Rep (2)",
+     "levelEn": "Operational staff"
+    },
+    {
+     "title": "Assistant Boutique",
+     "level": "Personnel opérationnel",
+     "city": "Niamey",
+     "salary": 100000,
+     "hireMonth": 1,
+     "titleEn": "Shop Assistant",
+     "levelEn": "Operational staff"
+    }
+   ],
+   "monthlyOnceFull": 2000000,
+   "annualFull": 24000000,
+   "totalPositionsInPlan": 6,
+   "note": ""
+  },
+  "monthly": [
+   {
+    "month": "Sept-26",
+    "monthEn": "Sep-26",
+    "monthKey": "2026-09",
+    "cartons": null,
+    "revenueRodis": 55000000,
+    "revenueDistributor": 75680000,
+    "existingCharges": 3743333.3333333335,
+    "recruitmentCum": 375000,
+    "marketingBudget": 715000,
+    "ristourne": 1135200,
+    "opex": 756800,
+    "totalCharges": 6725333.333333334,
+    "netResult": 68954666.66666667,
+    "logisticsCost": 12375000,
+    "profit": 1579666.666666666
+   },
+   {
+    "month": "Oct-26",
+    "monthEn": "Oct-26",
+    "monthKey": "2026-10",
+    "cartons": null,
+    "revenueRodis": 58025000,
+    "revenueDistributor": 79842400,
+    "existingCharges": 3743333.3333333335,
+    "recruitmentCum": 500000,
+    "marketingBudget": 715000,
+    "ristourne": 1197636,
+    "opex": 798424,
+    "totalCharges": 6954393.333333334,
+    "netResult": 72888006.66666667,
+    "logisticsCost": 13055625,
+    "profit": 1807381.666666666
+   },
+   {
+    "month": "Nov-26",
+    "monthEn": "Nov-26",
+    "monthKey": "2026-11",
+    "cartons": null,
+    "revenueRodis": 61216374.99999999,
+    "revenueDistributor": 84233731.99999999,
+    "existingCharges": 3743333.3333333335,
+    "recruitmentCum": 500000,
+    "marketingBudget": 715000,
+    "ristourne": 1263505.9799999997,
+    "opex": 842337.3199999998,
+    "totalCharges": 7064176.633333334,
+    "netResult": 77169555.36666664,
+    "logisticsCost": 13773684.374999998,
+    "profit": 2179495.9916666616
+   },
+   {
+    "month": "Déc-26",
+    "monthEn": "Dec-26",
+    "monthKey": "2026-12",
+    "cartons": null,
+    "revenueRodis": 64583275.62499999,
+    "revenueDistributor": 88866587.25999998,
+    "existingCharges": 3743333.3333333335,
+    "recruitmentCum": 2000000,
+    "marketingBudget": 715000,
+    "ristourne": 1332998.8088999996,
+    "opex": 888665.8725999998,
+    "totalCharges": 8679998.014833333,
+    "netResult": 80186589.24516664,
+    "logisticsCost": 14531237.015624998,
+    "profit": 1072076.604541652
+   },
+   {
+    "month": "Jan-27",
+    "monthEn": "Jan-27",
+    "monthKey": "2027-01",
+    "cartons": null,
+    "revenueRodis": 68135355.78437498,
+    "revenueDistributor": 93754249.55929996,
+    "existingCharges": 3743333.3333333335,
+    "recruitmentCum": 2000000,
+    "marketingBudget": 715000,
+    "ristourne": 1406313.7433894994,
+    "opex": 937542.4955929996,
+    "totalCharges": 8802189.572315833,
+    "netResult": 84952059.98698413,
+    "logisticsCost": 15330455.05148437,
+    "profit": 1486249.1511247735
+   },
+   {
+    "month": "Fév-27",
+    "monthEn": "Feb-27",
+    "monthKey": "2027-02",
+    "cartons": null,
+    "revenueRodis": 71882800.35251561,
+    "revenueDistributor": 98910733.28506146,
+    "existingCharges": 3743333.3333333335,
+    "recruitmentCum": 2000000,
+    "marketingBudget": 715000,
+    "ristourne": 1483660.9992759218,
+    "opex": 989107.3328506147,
+    "totalCharges": 8931101.665459871,
+    "netResult": 89979631.61960159,
+    "logisticsCost": 16173630.079316013,
+    "profit": 1923201.1877699718
+   },
+   {
+    "month": "Mar-27",
+    "monthEn": "Mar-27",
+    "monthKey": "2027-03",
+    "cartons": null,
+    "revenueRodis": 75836354.37190397,
+    "revenueDistributor": 104350823.61573985,
+    "existingCharges": 3743333.3333333335,
+    "recruitmentCum": 2000000,
+    "marketingBudget": 715000,
+    "ristourne": 1565262.3542360978,
+    "opex": 1043508.2361573986,
+    "totalCharges": 9067103.92372683,
+    "netResult": 95283719.69201303,
+    "logisticsCost": 17063179.733678393,
+    "profit": 2384185.5864306577
+   },
+   {
+    "month": "Avr-27",
+    "monthEn": "Apr-27",
+    "monthKey": "2027-04",
+    "cartons": null,
+    "revenueRodis": 80007353.86235867,
+    "revenueDistributor": 110090118.91460553,
+    "existingCharges": 3743333.3333333335,
+    "recruitmentCum": 2000000,
+    "marketingBudget": 715000,
+    "ristourne": 1651351.7837190828,
+    "opex": 1100901.1891460554,
+    "totalCharges": 9210586.306198472,
+    "netResult": 100879532.60840705,
+    "logisticsCost": 18001654.619030703,
+    "profit": 2870524.1270176806
+   },
+   {
+    "month": "Mai-27",
+    "monthEn": "May-27",
+    "monthKey": "2027-05",
+    "cartons": null,
+    "revenueRodis": 84407758.3247884,
+    "revenueDistributor": 116145075.45490883,
+    "existingCharges": 3743333.3333333335,
+    "recruitmentCum": 2000000,
+    "marketingBudget": 715000,
+    "ristourne": 1742176.1318236324,
+    "opex": 1161450.7545490884,
+    "totalCharges": 9361960.219706055,
+    "netResult": 106783115.23520277,
+    "logisticsCost": 18991745.623077393,
+    "profit": 3383611.287336979
+   },
+   {
+    "month": "Juin-27",
+    "monthEn": "Jun-27",
+    "monthKey": "2027-06",
+    "cartons": null,
+    "revenueRodis": 89050185.03265177,
+    "revenueDistributor": 122533054.60492882,
+    "existingCharges": 3743333.3333333335,
+    "recruitmentCum": 2000000,
+    "marketingBudget": 715000,
+    "ristourne": 1837995.8190739322,
+    "opex": 1225330.5460492882,
+    "totalCharges": 9521659.698456556,
+    "netResult": 113011394.90647227,
+    "logisticsCost": 20036291.63234665,
+    "profit": 3924918.24147385
+   },
+   {
+    "month": "Juil-27",
+    "monthEn": "Jul-27",
+    "monthKey": "2027-07",
+    "cartons": null,
+    "revenueRodis": 93947945.2094476,
+    "revenueDistributor": 129272372.6081999,
+    "existingCharges": 3743333.3333333335,
+    "recruitmentCum": 2000000,
+    "marketingBudget": 715000,
+    "ristourne": 1939085.5891229983,
+    "opex": 1292723.726081999,
+    "totalCharges": 9690142.64853833,
+    "netResult": 119582229.95966156,
+    "logisticsCost": 21138287.672125712,
+    "profit": 4495997.078088246
+   },
+   {
+    "month": "Août-27",
+    "monthEn": "Aug-27",
+    "monthKey": "2027-08",
+    "cartons": null,
+    "revenueRodis": 99115082.19596721,
+    "revenueDistributor": 136382353.10165086,
+    "existingCharges": 3743333.3333333335,
+    "recruitmentCum": 2000000,
+    "marketingBudget": 715000,
+    "ristourne": 2045735.2965247629,
+    "opex": 1363823.5310165086,
+    "totalCharges": 9867892.160874605,
+    "netResult": 126514460.94077626,
+    "logisticsCost": 22300893.494092625,
+    "profit": 5098485.250716422
+   }
+  ],
+  "totals": {
+   "cartons": null,
+   "revenueRodis": 901207485.7590082,
+   "revenueDistributor": 1240061500.4043953,
+   "existingCharges": 44920000.00000001,
+   "recruitmentCum": 19375000,
+   "marketingBudget": 8580000,
+   "ristourne": 18600922.506065927,
+   "opex": 12400615.00404395,
+   "totalCharges": 103876537.51010989,
+   "netResult": 1136184962.8942852,
+   "logisticsCost": 202771684.29577687,
+   "profit": 32205792.839500226
+  },
+  "creditLine": {
+   "outstanding": 201189240,
+   "proposedCeiling": 350000000,
+   "availableMargin": 148810760,
+   "utilizationRate": 0.5748264
+  }
+ }
+};
+const FILIALE_ORDER = ["cotedivoire","nigeria","togo","mali","congo","niger"];
+</script>
+
+<script>
+/* =========================================================================
+   I18N
+   ========================================================================= */
+const I18N = {
+  en: {
+    appName:"Rodis", appSub:"Subsidiary plans — Year 1",
+    tabOverview:"Overview",
+    crumbOverview:"Overview",
+    heroTitle:"Year 1 plan follow-up",
+    heroSub:"Progress of the 6 validated subsidiary plans against their Year‑1 revenue objective. Enter actuals as they come in — every signed-in teammate sees the same live numbers.",
+    kpiTotalObjective:"Group objective — Year 1", kpiTotalActual:"Actual booked to date",
+    kpiAttainment:"Group attainment to date", kpiOnTrack:"Subsidiaries on track", kpiCredit:"Credit lines in use",
+    ofN:"of {n}",
+    filialeObjective:"Year‑1 objective", filialeProgress:"progress to date",
+    viewDetails:"View details →",
+    statusGood:"On track", statusWarning:"At risk", statusCritical:"Behind", statusNeutral:"Not started",
+    creditUtil:"Credit line utilization",
+    backToOverview:"← All subsidiaries",
+    distributor:"Local distributor", period:"Plan period", currency:"Currency",
+    kpiAnnualObjective:"Year‑1 objective", kpiMonthlyObjective:"Monthly objective (avg)",
+    kpiYtdBaseline:"2026 YTD baseline (pre-plan)", kpiRunRate:"2026 run-rate / month",
+    kpiGrowth:"Required monthly growth", kpiPrice:"Avg. price / carton",
+    kpiCumulative:"Cumulative actual booked", kpiCumulativePlanned:"Cumulative plan-to-date",
+    monthlyPlanTitle:"Monthly plan vs. actual — Rodis revenue",
+    legendPlan:"Plan target", legendActual:"Actual (by status)",
+    tblMonth:"Month", tblCartonsPlan:"Cartons (plan)", tblCartonsActual:"Cartons (actual)",
+    tblRevPlan:"Revenue plan", tblRevActual:"Revenue actual", tblAttain:"Attainment", tblStatus:"Status",
+    tblDistRevPlan:"Distributor revenue (plan)",
+    total:"Total / Average — Year 1",
+    save:"Save", saved:"Saved", na:"—", notStarted:"No data yet",
+    marketingTitle:"Marketing budget (monthly)", marketingMonthlyTotal:"Monthly total", marketingAnnualTotal:"Annual total",
+    recruitmentTitle:"Hiring plan", recruitmentSub:"positions to fill for this subsidiary to reach full operating capacity",
+    rTitle:"Position", rLevel:"Level", rCity:"City", rSalary:"Est. salary / month", rHireMonth:"Planned hire month",
+    rStatus:"Status", rActualDate:"Actual hire date", rNote:"Note",
+    rPlanned:"Planned", rInProgress:"In progress", rHired:"Hired",
+    recruitmentOnceFull:"Payroll once fully staffed", recruitmentAnnual:"Annual (full run-rate)",
+    creditTitle:"Import credit line", creditOutstanding:"Current outstanding", creditCeiling:"Proposed new ceiling",
+    creditMargin:"Available headroom", creditRate:"Utilization",
+    creditOutstandingEdit:"Update current outstanding",
+    notesTitle:"Notes & comments", notesPlaceholder:"Log context on this subsidiary's progress — visible to everyone with access…",
+    yourName:"Your name (optional, shown with updates)",
+    accessReadOnly:"You're viewing in read-only mode. Enter the edit passcode on the Access tab to unlock data entry on this device.",
+    accessNote:"Data you enter here is live for everyone within a few seconds — no saving or refreshing needed on their end. Anyone with this link can view; ask the dashboard owner for the edit passcode (Access tab) if you need to enter data.",
+    monthShort:"Month {n}",
+    footerNote:"Built from the 6 validated Year‑1 subsidiary plans, updated August 2026.",
+    lastUpdated:"Last updated", by:"by",
+    cityTitle:"Revenue split by city (assumption)",
+    trucksTitle:"Trucks / year target", clientPotentialTitle:"Named client potential (annual)",
+    connErr:"Connection issue — showing the last synced data.",
+    savedNote:"Saved — live for everyone.",
+    permErr:"You need edit access on this page to save changes.",
+    dbUnavailable:"Live data isn't connected yet — figures below are read-only until the dashboard owner finishes the one-time setup.",
+    hierarchy:"Financial detail",
+    tabAdmin:"Access",
+    yourNamePlaceholder:"Your name",
+    liveBadge:"Live", readOnlyBadge:"View only", previewBadge:"Not connected",
+    adminTitle:"Access",
+    adminSub:"Anyone with this link can view the dashboard. Entering the shared edit passcode below unlocks data entry on this device — ask the dashboard owner for it if you don't have it.",
+    adminActivity:"Recent activity", adminNoActivity:"No activity yet.",
+    shareNote:"To share this dashboard: send this page's link to anyone who should view it. To let someone enter data too, also give them the edit passcode below — they enter it once on the Access tab and it's remembered on their device from then on.",
+    savingErr:"Couldn't save — check your connection and try again.",
+    writeBlocked:"Your change wasn't saved. Enter the edit passcode on the Access tab (ask the dashboard owner for it) to unlock data entry on this device.",
+    editPasscodeLabel:"Edit passcode", editPasscodeBtn:"Unlock editing", editPasscodeSet:"Saved on this device.",
+  },
+  fr: {
+    appName:"Rodis", appSub:"Plans filiales — Année 1",
+    tabOverview:"Vue d'ensemble",
+    crumbOverview:"Vue d'ensemble",
+    heroTitle:"Suivi du plan Année 1",
+    heroSub:"Avancement des 6 plans filiales validés par rapport à l'objectif de CA Année 1. Saisissez les réalisations au fil de l'eau — chaque membre connecté voit les mêmes chiffres, en direct.",
+    kpiTotalObjective:"Objectif Groupe — Année 1", kpiTotalActual:"CA réalisé à date",
+    kpiAttainment:"Taux d'atteinte Groupe à date", kpiOnTrack:"Filiales dans les clous", kpiCredit:"Lignes de crédit utilisées",
+    ofN:"sur {n}",
+    filialeObjective:"Objectif Année 1", filialeProgress:"progression à date",
+    viewDetails:"Voir le détail →",
+    statusGood:"Dans les clous", statusWarning:"À risque", statusCritical:"En retard", statusNeutral:"Pas encore démarré",
+    creditUtil:"Taux d'utilisation de la ligne de crédit",
+    backToOverview:"← Toutes les filiales",
+    distributor:"Distributeur local", period:"Période du plan", currency:"Devise",
+    kpiAnnualObjective:"Objectif Année 1", kpiMonthlyObjective:"Objectif mensuel (moyen)",
+    kpiYtdBaseline:"Référence YTD 2026 (avant plan)", kpiRunRate:"Run-rate 2026 / mois",
+    kpiGrowth:"Croissance mensuelle requise", kpiPrice:"Prix moyen / carton",
+    kpiCumulative:"CA réalisé cumulé", kpiCumulativePlanned:"Objectif cumulé à date",
+    monthlyPlanTitle:"Plan mensuel vs. réalisé — CA Rodis",
+    legendPlan:"Objectif du plan", legendActual:"Réalisé (par statut)",
+    tblMonth:"Mois", tblCartonsPlan:"Cartons (plan)", tblCartonsActual:"Cartons (réalisé)",
+    tblRevPlan:"CA plan", tblRevActual:"CA réalisé", tblAttain:"Atteinte", tblStatus:"Statut",
+    tblDistRevPlan:"CA distributeur (plan)",
+    total:"Total / Moyenne — Année 1",
+    save:"Enregistrer", saved:"Enregistré", na:"—", notStarted:"Aucune donnée",
+    marketingTitle:"Budget marketing (mensuel)", marketingMonthlyTotal:"Total mensuel", marketingAnnualTotal:"Total annuel",
+    recruitmentTitle:"Plan de recrutement", recruitmentSub:"postes à pourvoir pour atteindre la pleine capacité opérationnelle",
+    rTitle:"Poste", rLevel:"Niveau", rCity:"Ville", rSalary:"Salaire estimé / mois", rHireMonth:"Mois d'embauche prévu",
+    rStatus:"Statut", rActualDate:"Date d'embauche réelle", rNote:"Note",
+    rPlanned:"Prévu", rInProgress:"En cours", rHired:"Recruté",
+    recruitmentOnceFull:"Masse salariale une fois pourvu", recruitmentAnnual:"Annuel (pleine capacité)",
+    creditTitle:"Ligne de crédit import", creditOutstanding:"Encours actuel", creditCeiling:"Nouveau plafond proposé",
+    creditMargin:"Marge disponible", creditRate:"Taux d'utilisation",
+    creditOutstandingEdit:"Mettre à jour l'encours actuel",
+    notesTitle:"Notes & commentaires", notesPlaceholder:"Consignez le contexte sur l'avancement de cette filiale — visible par tous les accès…",
+    yourName:"Votre nom (facultatif, affiché avec vos mises à jour)",
+    accessReadOnly:"Vous consultez en lecture seule. Saisissez le mot de passe de modification dans l'onglet Accès pour activer la saisie sur cet appareil.",
+    accessNote:"Ce que vous saisissez ici est visible en direct par tout le monde en quelques secondes — sans avoir besoin d'enregistrer ou d'actualiser. Toute personne ayant ce lien peut consulter ; demandez au propriétaire le mot de passe de modification (onglet Accès) si vous devez saisir des données.",
+    monthShort:"Mois {n}",
+    footerNote:"Construit à partir des 6 plans filiales Année 1 validés, mis à jour en août 2026.",
+    lastUpdated:"Dernière mise à jour", by:"par",
+    cityTitle:"Répartition du CA par ville (hypothèse)",
+    trucksTitle:"Objectif camions / an", clientPotentialTitle:"Potentiel clients nommés (annuel)",
+    connErr:"Problème de connexion — dernières données synchronisées affichées.",
+    savedNote:"Enregistré — visible en direct pour tout le monde.",
+    permErr:"Un accès en modification à cette page est nécessaire pour enregistrer.",
+    dbUnavailable:"Les données en direct ne sont pas encore connectées — les chiffres ci-dessous sont en lecture seule tant que le propriétaire n'a pas terminé la configuration initiale.",
+    hierarchy:"Détail financier",
+    tabAdmin:"Accès",
+    yourNamePlaceholder:"Votre nom",
+    liveBadge:"En direct", readOnlyBadge:"Lecture seule", previewBadge:"Non connecté",
+    adminTitle:"Accès",
+    adminSub:"Toute personne ayant ce lien peut consulter le tableau de bord. Saisir le mot de passe de modification partagé ci-dessous active la saisie sur cet appareil — demandez-le au propriétaire du tableau de bord si vous ne l'avez pas.",
+    adminActivity:"Activité récente", adminNoActivity:"Aucune activité pour le moment.",
+    shareNote:"Pour partager ce tableau de bord : transmettez le lien de cette page à qui doit le consulter. Pour permettre aussi la saisie, transmettez également le mot de passe de modification ci-dessous — la personne le saisit une fois dans l'onglet Accès, il est ensuite mémorisé sur son appareil.",
+    savingErr:"Échec de l'enregistrement — vérifiez votre connexion et réessayez.",
+    writeBlocked:"Votre modification n'a pas été enregistrée. Saisissez le mot de passe de modification dans l'onglet Accès (demandez-le au propriétaire) pour activer la saisie sur cet appareil.",
+    editPasscodeLabel:"Mot de passe de modification", editPasscodeBtn:"Activer la saisie", editPasscodeSet:"Enregistré sur cet appareil.",
+  }
+};
+function t(k){ const s=(I18N[STATE.lang]&&I18N[STATE.lang][k]) || I18N.en[k] || k; return s; }
+function tf(k, vars){ let s=t(k); Object.keys(vars||{}).forEach(v=>{ s=s.replace('{'+v+'}', vars[v]); }); return s; }
+</script>
+
+<script>
+/* =========================================================================
+   STATE
+   ========================================================================= */
+function loadLocal(key, fallback){
+  try{ const v = localStorage.getItem(key); return v===null ? fallback : v; }catch(e){ return fallback; }
+}
+function saveLocal(key, val){ try{ localStorage.setItem(key,val); }catch(e){} }
+
+// Shared live state — populated from the `db` capability once it resolves.
+// Never persisted inside the page itself; RUNTIME_DEFAULTS is just the shape
+// used before the first snapshot arrives (or when db is unavailable).
+function runtimeDefaults(){ return { actuals:{}, creditline:{}, recruitment:{}, notes:{}, activity:[] }; }
+let RUNTIME = runtimeDefaults();
+function mergeRuntime(data){
+  const d = data || {};
+  RUNTIME = {
+    actuals: d.actuals || {},
+    creditline: d.creditline || {},
+    recruitment: d.recruitment || {},
+    notes: d.notes || {},
+    activity: d.activity || [],
+  };
+}
+
+const STATE = {
+  lang: loadLocal('rodis_lang','en'),
+  view: 'overview', // 'overview' | filialeId | 'admin'
+  myName: loadLocal('rodis_name',''),
+  editCode: loadLocal('rodis_editcode',''),
+  dbReady: false,   // the backend responded at least once
+  dbLoaded: false,  // first payload has arrived
+  readOnly: false,  // flips true once a write is rejected for a wrong/missing passcode
+  syncing: false,
+};
+
+const CURRENCY_LABEL = { NGN:'NGN', XOF:'FCFA', XAF:'FCFA' };
+
+/* =========================================================================
+   ACCESS
+   Who can open this page at all, and who can edit vs. only view, is decided
+   entirely by Claude's own sharing on this artifact (its share menu) — not
+   by anything in this file. There's no separate username/password. We can't
+   ask "what's my access level" up front, so every viewer sees every
+   subsidiary and every input starts enabled; a write that the platform
+   rejects for lack of edit access flips the page into a visible
+   read-only state (see persist()).
+   ========================================================================= */
+function canView(_filialeId){ return true; }
+function canEdit(_filialeId){ return STATE.dbReady && !STATE.readOnly; }
+function accessibleFiliales(){ return FILIALE_ORDER; }
+function currentName(){
+  return STATE.myName || (STATE.lang==='fr'?'Anonyme':'Anonymous');
+}
+
+/* =========================================================================
+   FORMATTING
+   ========================================================================= */
+function nf(lang){ return new Intl.NumberFormat(lang==='fr' ? 'fr-FR' : 'en-US'); }
+function fmtInt(v){ if(v===null||v===undefined||isNaN(v)) return t('na'); return nf(STATE.lang).format(Math.round(v)); }
+function fmtM(v, filiale, digits){
+  if(v===null||v===undefined||isNaN(v)) return t('na');
+  digits = digits===undefined?1:digits;
+  const cur = CURRENCY_LABEL[filiale.currency]||filiale.currency;
+  return nf(STATE.lang).format(Number((v/1e6).toFixed(digits))) + ' M ' + cur;
+}
+function fmtFull(v, filiale){
+  if(v===null||v===undefined||isNaN(v)) return t('na');
+  const cur = CURRENCY_LABEL[filiale.currency]||filiale.currency;
+  return nf(STATE.lang).format(Math.round(v)) + ' ' + cur;
+}
+function fmtPct(v, digits){
+  if(v===null||v===undefined||isNaN(v)) return t('na');
+  digits = digits===undefined?0:digits;
+  return (v*100).toFixed(digits).replace('.', STATE.lang==='fr' ? ',' : '.') + '%';
+}
+function countryName(f){ return STATE.lang==='fr' ? f.countryFr : f.countryEn; }
+function periodText(f){ return STATE.lang==='fr' ? f.periodFr : f.periodEn; }
+function monthLabel(m){ return STATE.lang==='fr' ? m.month : m.monthEn; }
+function mktLabel(item){ return STATE.lang==='fr' ? item.labelFr : item.labelEn; }
+function posTitle(p){ return STATE.lang==='fr' ? p.title : (p.titleEn||p.title); }
+function posLevel(p){ return STATE.lang==='fr' ? p.level : (p.levelEn||p.level); }
+
+/* =========================================================================
+   PROGRESS / STATUS LOGIC
+   ========================================================================= */
+function statusForRatio(ratio){
+  if(ratio===null||ratio===undefined||isNaN(ratio)) return 'neutral';
+  if(ratio>=0.95) return 'good';
+  if(ratio>=0.80) return 'warning';
+  return 'critical';
+}
+function statusLabel(status){
+  return status==='good'?t('statusGood') : status==='warning'?t('statusWarning') : status==='critical'?t('statusCritical') : t('statusNeutral');
+}
+// cumulative attainment across whichever months have a reported actual
+function filialeProgress(filiale){
+  let cumPlanned=0, cumActual=0, n=0;
+  filiale.monthly.forEach(m=>{
+    const rec = RUNTIME.actuals[filiale.id+'_'+m.monthKey];
+    if(rec && rec.revenueActual!==null && rec.revenueActual!==undefined && rec.revenueActual!==''){
+      cumPlanned += m.revenueRodis;
+      cumActual += Number(rec.revenueActual);
+      n++;
+    }
+  });
+  const ratio = n>0 ? (cumActual/cumPlanned) : null;
+  return { cumPlanned, cumActual, monthsReported:n, ratio, status: statusForRatio(ratio) };
+}
+function creditUtil(filiale){
+  const rec = RUNTIME.creditline[filiale.id];
+  const outstanding = rec && rec.outstanding!==undefined && rec.outstanding!==null && rec.outstanding!=='' ? Number(rec.outstanding) : filiale.creditLine.outstanding;
+  const ceiling = filiale.creditLine.proposedCeiling;
+  const rate = ceiling ? outstanding/ceiling : null;
+  return { outstanding, ceiling, margin: ceiling-outstanding, rate };
+}
+function creditStatus(rate){
+  if(rate===null||rate===undefined||isNaN(rate)) return 'neutral';
+  if(rate<0.70) return 'good';
+  if(rate<0.88) return 'warning';
+  return 'critical';
+}
+</script>
+
+<script>
+/* =========================================================================
+   TOASTS
+   ========================================================================= */
+function toast(msg, isErr){
+  const wrap = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast' + (isErr?' err':'');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .25s'; setTimeout(()=>el.remove(),260); }, 2600);
+}
+
+/* =========================================================================
+   LIVE DATA WIRING (Google Apps Script backend)
+   All shared state (actuals, credit lines, recruitment status, notes,
+   activity log) lives as one JSON blob behind a small Apps Script Web
+   App, backed by a Google Sheet. Every open tab polls it on an interval
+   and re-renders on change — including changes made by other people.
+   Anyone with the page link can view; a write must carry the shared
+   edit passcode (checked server-side in Code.gs) or it's rejected —
+   persist() surfaces that as a read-only state.
+   ========================================================================= */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyBHCaS5ylmAgZ-v6jomwbahGXHWlXngjSnkt9aEqEAdPeYDYq3rnoBF9jO8vSH-8qexw/exec'; // Apps Script /exec URL, baked in at build time
+const POLL_MS = 6000;
+let pollTimer = null;
+
+function gasConfigured(){ return !!GAS_URL && GAS_URL.slice(0,4)==='http'; }
+
+async function initRemote(){
+  if(!gasConfigured()){ STATE.dbReady=false; render(); return; }
+  await pollOnce();
+  if(!pollTimer) pollTimer = setInterval(pollOnce, POLL_MS);
+}
+
+async function pollOnce(){
+  try{
+    const res = await fetch(GAS_URL, { method:'GET', cache:'no-store' });
+    if(!res.ok) throw new Error('http '+res.status);
+    const data = await res.json();
+    mergeRuntime(data);
+    STATE.dbReady = true;
+    STATE.dbLoaded = true;
+    render();
+  }catch(e){
+    // background poll failure — keep showing the last known data rather
+    // than flashing an error on every missed poll
+    if(!STATE.dbLoaded){ STATE.dbReady=false; render(); }
   }
 }
+
+function pushActivity(action, detail){
+  RUNTIME.activity = RUNTIME.activity || [];
+  RUNTIME.activity.unshift({ ts:new Date().toISOString(), user:currentName(), action, detail:detail||'' });
+  if(RUNTIME.activity.length>80) RUNTIME.activity.length=80;
+}
+
+async function persist(){
+  if(!gasConfigured()){ toast(t('dbUnavailable'), true); return false; }
+  STATE.syncing = true;
+  try{
+    const res = await fetch(GAS_URL, {
+      method:'POST',
+      body: JSON.stringify({ passcode: STATE.editCode||'', data: RUNTIME }),
+    });
+    const out = await res.json();
+    STATE.syncing = false;
+    if(!out || !out.ok){
+      // wrong/missing edit passcode — flip into a visible read-only state
+      STATE.readOnly = true;
+      toast(t('writeBlocked'), true);
+      render();
+      return false;
+    }
+    STATE.readOnly = false;
+    toast(t('savedNote'), false);
+    return true;
+  }catch(e){
+    STATE.syncing = false;
+    toast(t('savingErr'), true);
+    return false;
+  }
+}
+
+/* ---------- edit passcode (unlocks data entry on this device) ---------- */
+function setEditCode(code){
+  STATE.editCode = (code||'').trim();
+  saveLocal('rodis_editcode', STATE.editCode);
+  STATE.readOnly = false; // optimistic — the next save confirms or reverts this
+  toast(t('editPasscodeSet'), false);
+  render();
+}
+window.setEditCode = setEditCode;
+
+async function saveActual(filialeId, monthKey, cartonsVal, revenueVal){
+  if(!canEdit(filialeId)) return;
+  const cartons = cartonsVal===''||cartonsVal===undefined ? null : Number(cartonsVal);
+  const revenue = revenueVal===''||revenueVal===undefined ? null : Number(revenueVal);
+  const key = filialeId+'_'+monthKey;
+  RUNTIME.actuals[key] = { cartonsActual: cartons, revenueActual: revenue, updatedAt:new Date().toISOString(), updatedBy: currentName() };
+  pushActivity('actual', filialeId+' '+monthKey);
+  render();
+  await persist();
+}
+async function saveCredit(filialeId, outstandingVal){
+  if(!canEdit(filialeId)) return;
+  const outstanding = outstandingVal===''||outstandingVal===undefined ? null : Number(outstandingVal);
+  RUNTIME.creditline[filialeId] = { outstanding, updatedAt:new Date().toISOString(), updatedBy: currentName() };
+  pushActivity('credit line', filialeId);
+  render();
+  await persist();
+}
+async function saveRecruitment(filialeId, idx, status, actualDate){
+  if(!canEdit(filialeId)) return;
+  RUNTIME.recruitment[filialeId+'_'+idx] = { status, actualDate: actualDate||null, updatedAt:new Date().toISOString(), updatedBy: currentName() };
+  pushActivity('recruitment', filialeId+' #'+idx);
+  render();
+  await persist();
+}
+async function saveNotes(filialeId, text){
+  if(!canEdit(filialeId)) return;
+  RUNTIME.notes[filialeId] = { text, updatedAt:new Date().toISOString(), updatedBy: currentName() };
+  pushActivity('notes', filialeId);
+  render();
+  await persist();
+}
+
+/* ---------- who am I (display-name only — not an access control) ---------- */
+function setMyName(name){
+  STATE.myName = (name||'').trim();
+  saveLocal('rodis_name', STATE.myName);
+}
+window.setMyName = setMyName;
+</script>
+
+<script>
+/* =========================================================================
+   NAVIGATION
+   ========================================================================= */
+function setLang(l){ STATE.lang=l; saveLocal('rodis_lang', l); render(); }
+function goto(view){ STATE.view=view; window.scrollTo({top:0, behavior:'instant' in window ? 'instant':'auto'}); render(); }
+window.setLang = setLang; window.goto = goto;
+
+/* =========================================================================
+   ICON HELPERS (inline SVG, no icon font)
+   ========================================================================= */
+function iconChevron(){ return '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 6l6 6-6 6"/></svg>'; }
+
+/* =========================================================================
+   ROOT RENDER
+   ========================================================================= */
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = renderTopbar() + renderTabs() + '<main>' + renderMain() + '</main>' + renderFooter();
+}
+
+function renderTopbar(){
+  const status = !STATE.dbReady
+    ? `<span class="pill neutral">${t('previewBadge')}</span>`
+    : STATE.readOnly
+      ? `<span class="pill neutral">${t('readOnlyBadge')}</span>`
+      : `<span class="pill good"><span class="dot good"></span>${t('liveBadge')}</span>`;
+  return `
+  <div class="topbar">
+    <div class="brandmark">R</div>
+    <div class="brand-text">
+      <span class="t1">${t('appName')}</span>
+      <span class="t2">${t('appSub')}</span>
+    </div>
+    <div class="topbar-spacer"></div>
+    ${status}
+    <div class="lang-toggle" role="group" aria-label="Language">
+      <button class="${STATE.lang==='en'?'active':''}" onclick="setLang('en')">EN</button>
+      <button class="${STATE.lang==='fr'?'active':''}" onclick="setLang('fr')">FR</button>
+    </div>
+    <input class="name-input" type="text" value="${escapeAttr(STATE.myName)}" placeholder="${t('yourNamePlaceholder')}" onchange="setMyName(this.value)"/>
+  </div>`;
+}
+
+function renderTabs(){
+  let tabs = `<div class="tab ${STATE.view==='overview'?'active':''}" onclick="goto('overview')">${t('tabOverview')}</div>`;
+  accessibleFiliales().forEach(id=>{
+    const f = FILIALES[id];
+    tabs += `<div class="tab ${STATE.view===id?'active':''}" onclick="goto('${id}')"><span class="flag">${f.flag}</span>${countryName(f)}</div>`;
+  });
+  tabs += `<div class="tab ${STATE.view==='admin'?'active':''}" onclick="goto('admin')">⚙ ${t('tabAdmin')}</div>`;
+  return `<div class="tabs">${tabs}</div>`;
+}
+
+function renderFooter(){
+  return `<footer class="appfoot">${t('footerNote')}</footer>`;
+}
+
+function renderMain(){
+  if(STATE.view==='admin') return renderAdminPanel();
+  if(STATE.view==='overview') return renderOverview();
+  const f = FILIALES[STATE.view];
+  if(!f) return renderOverview();
+  return renderFilialeDetail(f);
+}
+</script>
+
+<script>
+/* =========================================================================
+   OVERVIEW
+   ========================================================================= */
+function renderOverview(){
+  const visible = accessibleFiliales();
+  let totalObjective=0, totalActual=0, totalPlannedReported=0, onTrack=0, reportingCount=0;
+  let totalOutstanding=0, totalCeiling=0;
+  visible.forEach(id=>{
+    const f = FILIALES[id];
+    totalObjective += f.objectiveAnnual;
+    const p = filialeProgress(f);
+    if(p.monthsReported>0){ reportingCount++; totalActual += p.cumActual; totalPlannedReported += p.cumPlanned; if(p.status==='good') onTrack++; }
+    const c = creditUtil(f);
+    totalOutstanding += c.outstanding; totalCeiling += c.ceiling;
+  });
+  const groupRatio = totalPlannedReported>0 ? totalActual/totalPlannedReported : null;
+  const groupRate = totalCeiling>0 ? totalOutstanding/totalCeiling : null;
+
+  const notice = !STATE.dbReady ? `<div class="access-note" style="max-width:640px;margin:6px 0 0">${t('dbUnavailable')}</div>` : '';
+
+  return `
+  <div class="crumb">${t('crumbOverview')}</div>
+  <h1 class="display" style="font-size:28px;font-weight:600;margin:0 0 6px;">${t('heroTitle')}</h1>
+  <p style="max-width:680px;color:var(--ink-soft);font-size:14.5px;line-height:1.55;margin:0 0 18px;">${t('heroSub')}</p>
+  ${notice}
+
+  <div class="grid kpi-row" style="margin-top:18px;">
+    <div class="card kpi">
+      <div class="label">${t('kpiTotalObjective')}</div>
+      <div class="value num">${fmtM(totalObjective, {currency:'XOF'})}</div>
+    </div>
+    <div class="card kpi">
+      <div class="label">${t('kpiTotalActual')}</div>
+      <div class="value num">${reportingCount>0 ? fmtM(totalActual,{currency:'XOF'}) : t('notStarted')}</div>
+      <div class="sub">${reportingCount>0 ? tf('ofN',{n:visible.length}) + ' ' + t('kpiTotalActual').toLowerCase() : ''}</div>
+    </div>
+    <div class="card kpi">
+      <div class="label">${t('kpiAttainment')}</div>
+      <div class="value num" style="color:${groupRatio===null?'inherit':'var(--'+ (statusForRatio(groupRatio)==='good'?'good-text':statusForRatio(groupRatio)) +')'}">${groupRatio===null? t('notStarted') : fmtPct(groupRatio)}</div>
+    </div>
+    <div class="card kpi">
+      <div class="label">${t('kpiOnTrack')}</div>
+      <div class="value num">${onTrack} <span style="font-size:15px;color:var(--ink-mute);font-family:'Inter'">${tf('ofN',{n:visible.length})}</span></div>
+    </div>
+    <div class="card kpi">
+      <div class="label">${t('kpiCredit')}</div>
+      <div class="value num">${groupRate===null? t('na') : fmtPct(groupRate)}</div>
+      <div class="sub">${fmtM(totalOutstanding,{currency:'XOF'})} / ${fmtM(totalCeiling,{currency:'XOF'})}</div>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>${STATE.lang==='fr'?'Vos filiales':'Your subsidiaries'}</h2></div>
+  <div class="grid filiale-grid">
+    ${visible.map(id=>renderFilialeCard(FILIALES[id])).join('')}
+  </div>
+  `;
+}
+
+function renderFilialeCard(f){
+  const p = filialeProgress(f);
+  const c = creditUtil(f);
+  const pct = p.ratio===null ? 0 : Math.max(0, Math.min(1, p.ratio));
+  const status = p.status;
+  return `
+  <div class="card filiale-card" onclick="goto('${f.id}')">
+    <div class="fc-head">
+      <span class="flag">${f.flag}</span>
+      <div>
+        <div class="fc-name">${countryName(f)}</div>
+        <div class="fc-dist">${t('distributor')}: ${f.distributor}</div>
+      </div>
+      <div style="margin-left:auto;">
+        <span class="pill ${status}"><span class="dot ${status}"></span>${statusLabel(status)}</span>
+      </div>
+    </div>
+    <div class="fc-obj">
+      <div><div class="l">${t('filialeObjective')}</div><div class="v num">${fmtM(f.objectiveAnnual, f)}</div></div>
+      <div style="text-align:right"><div class="l">${t('filialeProgress')}</div><div class="v num">${p.monthsReported>0?fmtPct(p.ratio):'—'}</div></div>
+    </div>
+    <div class="bar-track"><div class="bar-fill ${status}" style="width:${(pct*100).toFixed(1)}%"></div></div>
+    <div class="fc-row">
+      <span>${t('creditUtil')}</span>
+      <span class="num">${fmtPct(c.rate)}</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill ${creditStatus(c.rate)}" style="width:${Math.min(100,(c.rate||0)*100).toFixed(1)}%"></div></div>
+    <div style="text-align:right;font-size:12px;font-weight:700;color:var(--primary);margin-top:2px;">${t('viewDetails')}</div>
+  </div>`;
+}
+</script>
+
+<script>
+/* =========================================================================
+   TOOLTIP
+   ========================================================================= */
+function escapeAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function showTip(evt, html){
+  const tip = document.getElementById('tooltip');
+  tip.innerHTML = html;
+  positionTip(evt);
+  tip.style.opacity = '1';
+}
+function positionTip(evt){
+  const tip = document.getElementById('tooltip');
+  let x = evt.clientX + 16, y = evt.clientY + 16;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  if(x + 230 > vw) x = evt.clientX - 230 - 10;
+  if(y + 90 > vh) y = evt.clientY - 90;
+  tip.style.left = x+'px'; tip.style.top = y+'px';
+}
+function moveTip(evt){ if(document.getElementById('tooltip').style.opacity==='1') positionTip(evt); }
+function hideTip(){ document.getElementById('tooltip').style.opacity = '0'; }
+window.showTip=showTip; window.moveTip=moveTip; window.hideTip=hideTip;
+
+/* =========================================================================
+   MONTHLY PLAN VS ACTUAL — grouped bar chart (inline SVG)
+   ========================================================================= */
+function monthlyChart(f){
+  const months = f.monthly;
+  const n = months.length;
+  const W = 780, H = 240, padL = 4, padR = 4, padT = 14, padB = 28;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const groupW = plotW / n;
+  const barW = Math.min(15, groupW*0.30);
+
+  let maxVal = 0;
+  const rows = months.map(m=>{
+    const rec = RUNTIME.actuals[f.id+'_'+m.monthKey];
+    const actual = rec && rec.revenueActual!==null && rec.revenueActual!==undefined && rec.revenueActual!=='' ? Number(rec.revenueActual) : null;
+    maxVal = Math.max(maxVal, m.revenueRodis, actual||0);
+    return { m, actual };
+  });
+  maxVal = maxVal * 1.18 || 1;
+
+  const yFor = v => padT + plotH - (v/maxVal)*plotH;
+
+  let grid = '';
+  [0,0.25,0.5,0.75,1].forEach(f2=>{
+    const y = padT + plotH - f2*plotH;
+    grid += `<line x1="${padL}" x2="${W-padR}" y1="${y}" y2="${y}" stroke="var(--chart-grid)" stroke-width="1"/>`;
+  });
+
+  let bars = '', labels = '';
+  rows.forEach((row,i)=>{
+    const gx = padL + i*groupW;
+    const cx = gx + groupW/2;
+    const planX = cx - barW - 2;
+    const actX = cx + 2;
+    const planY = yFor(row.m.revenueRodis);
+    const planH = (padT+plotH) - planY;
+    const ratio = row.actual!==null ? row.actual/row.m.revenueRodis : null;
+    const status = statusForRatio(ratio);
+    const statusColor = status==='good' ? 'var(--good)' : status==='warning' ? 'var(--warning)' : status==='critical' ? 'var(--critical)' : 'var(--chart-axis)';
+    const actY = row.actual!==null ? yFor(row.actual) : (padT+plotH);
+    const actH = row.actual!==null ? (padT+plotH) - actY : 0;
+
+    const tip = `<div style="font-weight:700;margin-bottom:4px">${monthLabel(row.m)}</div>`+
+      `<div>${t('tblRevPlan')}: <b>${fmtM(row.m.revenueRodis, f)}</b></div>`+
+      `<div>${t('tblRevActual')}: <b>${row.actual!==null ? fmtM(row.actual, f) : t('notStarted')}</b></div>`+
+      (ratio!==null ? `<div>${t('tblAttain')}: <b>${fmtPct(ratio)}</b></div>` : '');
+
+    bars += `<g onmouseenter="showTip(event,'${escapeAttr(tip)}')" onmousemove="moveTip(event)" onmouseleave="hideTip()" style="cursor:pointer">`+
+      `<rect x="${(planX-barW/2).toFixed(1)}" y="${planY.toFixed(1)}" width="${barW}" height="${Math.max(planH,0).toFixed(1)}" rx="2.5" fill="none" stroke="var(--series-1)" stroke-width="1.6"/>`+
+      (row.actual!==null
+        ? `<rect x="${(actX-barW/2).toFixed(1)}" y="${actY.toFixed(1)}" width="${barW}" height="${Math.max(actH,0).toFixed(1)}" rx="2.5" fill="${statusColor}"/>`
+        : `<rect x="${(actX-barW/2).toFixed(1)}" y="${(padT+plotH-2).toFixed(1)}" width="${barW}" height="2" rx="1" fill="var(--chart-muted)" opacity=".5"/>`)+
+      `<rect x="${gx.toFixed(1)}" y="${padT}" width="${groupW.toFixed(1)}" height="${plotH}" fill="transparent"/>`+
+      `</g>`;
+    labels += `<text x="${cx.toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="10.5" fill="var(--chart-muted)">${monthLabel(row.m).split('-')[0]}</text>`;
+  });
+
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;background:var(--chart-surface);border-radius:10px;">${grid}${bars}${labels}</svg>`;
+}
+</script>
+
+<script>
+/* =========================================================================
+   FILIALE DETAIL PAGE
+   ========================================================================= */
+function renderFilialeDetail(f){
+  const p = filialeProgress(f);
+  const c = creditUtil(f);
+  return `
+  <div class="crumb"><a onclick="goto('overview')">${t('backToOverview')}</a></div>
+  <div class="detail-head">
+    <span class="flag">${f.flag}</span>
+    <div>
+      <h1 class="display">${countryName(f)} — ${f.entity}</h1>
+      <div class="meta">${t('distributor')}: <b>${f.distributor}</b> &nbsp;·&nbsp; ${t('period')}: ${periodText(f)}</div>
+    </div>
+    <div class="badge-row">
+      <span class="pill ${p.status}"><span class="dot ${p.status}"></span>${statusLabel(p.status)}</span>
+      <span class="badge">${CURRENCY_LABEL[f.currency]||f.currency} · ${f.currencyNote}</span>
+    </div>
+  </div>
+
+  <div class="grid kpi-row">
+    <div class="card kpi"><div class="label">${t('kpiAnnualObjective')}</div><div class="value num">${fmtM(f.objectiveAnnual,f)}</div><div class="sub">${fmtM(f.objectiveMonthly,f)}/${STATE.lang==='fr'?'mois':'mo'}</div></div>
+    <div class="card kpi"><div class="label">${t('kpiCumulative')}</div><div class="value num">${p.monthsReported>0?fmtM(p.cumActual,f):t('notStarted')}</div><div class="sub">${p.monthsReported>0? fmtPct(p.ratio)+' '+t('filialeProgress') : ''}</div></div>
+    <div class="card kpi"><div class="label">${t('kpiYtdBaseline')}</div><div class="value num">${f.ytdRevenue2026?fmtM(f.ytdRevenue2026,f):t('na')}</div><div class="sub">${f.ytdCartons2026?fmtInt(f.ytdCartons2026)+' '+(STATE.lang==='fr'?'cartons':'cartons'):''}</div></div>
+    <div class="card kpi"><div class="label">${t('kpiRunRate')}</div><div class="value num">${f.runRateMonthly?fmtM(f.runRateMonthly,f):t('na')}</div><div class="sub">${f.avgPricePerCarton?fmtInt(f.avgPricePerCarton)+' '+(CURRENCY_LABEL[f.currency]||f.currency)+'/carton':''}</div></div>
+    <div class="card kpi"><div class="label">${t('kpiGrowth')}</div><div class="value num">${f.growthRateRequired!==null&&f.growthRateRequired!==undefined?fmtPct(f.growthRateRequired,1):t('na')}</div><div class="sub">${STATE.lang==='fr'?'par mois':'per month'}</div></div>
+  </div>
+
+  <div class="section-title"><h2>${t('monthlyPlanTitle')}</h2></div>
+  <div class="card chart-card">
+    <div class="chart-legend">
+      <span class="li"><span class="swatch" style="border:2px solid var(--series-1);background:transparent;"></span>${t('legendPlan')}</span>
+      <span class="li"><span class="swatch" style="background:var(--good)"></span>${statusLabel('good')}</span>
+      <span class="li"><span class="swatch" style="background:var(--warning)"></span>${statusLabel('warning')}</span>
+      <span class="li"><span class="swatch" style="background:var(--critical)"></span>${statusLabel('critical')}</span>
+    </div>
+    ${monthlyChart(f)}
+  </div>
+
+  <div class="access-note">${!STATE.dbReady ? t('dbUnavailable') : (canEdit(f.id) ? t('accessNote') : t('accessReadOnly'))}</div>
+
+  <div class="section-title"><h2>${t('hierarchy')}</h2></div>
+  <div class="card table-wrap pad">
+    ${monthlyTable(f)}
+  </div>
+
+  <div class="two-col" style="margin-top:24px;">
+    <div>
+      <div class="section-title" style="margin-top:0"><h2>${t('recruitmentTitle')}</h2><span class="hint">${f.recruitment.positions.length} ${t('recruitmentSub')}</span></div>
+      <div class="card table-wrap pad">${recruitmentTable(f)}</div>
+    </div>
+    <div>
+      <div class="section-title" style="margin-top:0"><h2>${t('marketingTitle')}</h2></div>
+      <div class="card pad">${marketingPanel(f)}</div>
+      <div class="section-title"><h2>${t('creditTitle')}</h2></div>
+      <div class="card pad">${creditPanel(f)}</div>
+    </div>
+  </div>
+
+  ${f.trucksTargetPerYear ? `
+  <div class="section-title"><h2>${t('trucksTitle')}</h2></div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+    <div class="card kpi"><div class="label">${t('trucksTitle')}</div><div class="value num">${parseInt(f.trucksTargetPerYear,10)} <span style="font-size:14px;color:var(--ink-mute);font-family:'Inter'">${STATE.lang==='fr'?'camions/an':'trucks/yr'}</span></div></div>
+    <div class="card kpi pad" style="grid-column:span 2;">
+      <div class="label">${t('clientPotentialTitle')}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">
+        ${(f.clientPotential||[]).map(cl=>`<div style="display:flex;justify-content:space-between;font-size:12.5px;"><span>${cl.name}</span><b class="num">${fmtFull(cl.potential,f)}</b></div>`).join('')}
+      </div>
+    </div>
+  </div>` : ''}
+
+  ${f.citySplit && f.citySplit.length ? `
+  <div class="section-title"><h2>${t('cityTitle')}</h2></div>
+  <div class="card pad">
+    ${f.citySplit.map((cs,i)=>`
+      <div class="mkt-item">
+        <div class="mkt-toprow"><span class="mkt-label">${STATE.lang==='fr'?cs.city:cs.cityEn}</span><span class="mkt-val num">${fmtPct(cs.share)}</span></div>
+        <div class="mkt-bar"><div style="width:${(cs.share*100).toFixed(1)}%;background:${SERIES_COLORS[i%SERIES_COLORS.length]}"></div></div>
+      </div>`).join('')}
+  </div>` : ''}
+
+  <div class="section-title"><h2>${t('notesTitle')}</h2></div>
+  <div class="card pad">${notesPanel(f)}</div>
+  `;
+}
+
+/* ---------- monthly table ---------- */
+function monthlyTable(f){
+  const hasCartons = f.monthly[0].cartons !== null && f.monthly[0].cartons !== undefined;
+  const dis = canEdit(f.id) ? '' : 'disabled';
+  let head = `<tr><th>${t('tblMonth')}</th>`;
+  if(hasCartons) head += `<th>${t('tblCartonsPlan')}</th><th>${t('tblCartonsActual')}</th>`;
+  head += `<th>${t('tblRevPlan')}</th><th>${t('tblRevActual')}</th><th>${t('tblDistRevPlan')}</th><th>${t('tblAttain')}</th><th>${t('tblStatus')}</th><th></th></tr>`;
+
+  let rows='';
+  f.monthly.forEach(m=>{
+    const rec = RUNTIME.actuals[f.id+'_'+m.monthKey] || {};
+    const cartonsActual = rec.cartonsActual!==undefined && rec.cartonsActual!==null ? rec.cartonsActual : '';
+    const revenueActual = rec.revenueActual!==undefined && rec.revenueActual!==null ? rec.revenueActual : '';
+    const ratio = (revenueActual!=='' && !isNaN(revenueActual)) ? Number(revenueActual)/m.revenueRodis : null;
+    const status = statusForRatio(ratio);
+    const cId = 'c_'+f.id+'_'+m.monthKey, rId = 'r_'+f.id+'_'+m.monthKey;
+    rows += `<tr>
+      <td>${monthLabel(m)}</td>
+      ${hasCartons ? `<td class="num">${fmtInt(m.cartons)}</td><td><input id="${cId}" class="cell-input" type="number" value="${cartonsActual}" ${dis} placeholder="${t('na')}"/></td>` : ''}
+      <td class="num">${fmtM(m.revenueRodis,f,1)}</td>
+      <td><input id="${rId}" class="cell-input" type="number" value="${revenueActual}" ${dis} placeholder="${t('na')}"/></td>
+      <td class="num">${fmtM(m.revenueDistributor,f,1)}</td>
+      <td class="num">${ratio!==null?fmtPct(ratio):t('na')}</td>
+      <td><span class="pill ${status}"><span class="dot ${status}"></span>${statusLabel(status)}</span></td>
+      <td><button class="save-btn" ${dis} onclick="onSaveMonth('${f.id}','${m.monthKey}','${hasCartons?cId:''}','${rId}')">${t('save')}</button></td>
+    </tr>`;
+  });
+
+  const tot = f.totals;
+  rows += `<tr class="total-row">
+    <td>${t('total')}</td>
+    ${hasCartons ? `<td class="num">${fmtInt(tot.cartons)}</td><td></td>` : ''}
+    <td class="num">${fmtM(tot.revenueRodis,f,1)}</td><td></td>
+    <td class="num">${fmtM(tot.revenueDistributor,f,1)}</td>
+    <td></td><td></td><td></td>
+  </tr>`;
+
+  return `<table>${head}${rows}</table>`;
+}
+function onSaveMonth(fid, monthKey, cId, rId){
+  const cVal = cId ? document.getElementById(cId).value : '';
+  const rVal = document.getElementById(rId).value;
+  saveActual(fid, monthKey, cVal, rVal);
+}
+window.onSaveMonth = onSaveMonth;
+
+/* ---------- recruitment table ---------- */
+const REC_STATUSES = ['planned','in_progress','hired'];
+function recStatusLabel(s){ return s==='hired'?t('rHired') : s==='in_progress'?t('rInProgress') : t('rPlanned'); }
+function recruitmentTable(f){
+  const dis = canEdit(f.id) ? '' : 'disabled';
+  let head = `<tr><th>${t('rTitle')}</th><th>${t('rLevel')}</th><th>${t('rCity')}</th><th>${t('rSalary')}</th><th>${t('rHireMonth')}</th><th>${t('rStatus')}</th><th>${t('rActualDate')}</th><th></th></tr>`;
+  let rows = '';
+  f.recruitment.positions.forEach((pos,idx)=>{
+    const rec = RUNTIME.recruitment[f.id+'_'+idx] || {};
+    const status = rec.status || 'planned';
+    const actualDate = rec.actualDate || '';
+    const sId = 'rs_'+f.id+'_'+idx, dId = 'rd_'+f.id+'_'+idx;
+    rows += `<tr>
+      <td>${posTitle(pos)}</td>
+      <td>${posLevel(pos)}</td>
+      <td>${pos.city||t('na')}</td>
+      <td class="num">${pos.salary?fmtFull(pos.salary,f):t('na')}</td>
+      <td class="num">${tf('monthShort',{n:pos.hireMonth})}</td>
+      <td><select id="${sId}" class="cell-input" style="width:118px" ${dis}>
+        ${REC_STATUSES.map(s=>`<option value="${s}" ${s===status?'selected':''}>${recStatusLabel(s)}</option>`).join('')}
+      </select></td>
+      <td><input id="${dId}" class="cell-input" style="width:132px" type="date" value="${actualDate}" ${dis}/></td>
+      <td><button class="save-btn" ${dis} onclick="onSaveRecruitment('${f.id}',${idx},'${sId}','${dId}')">${t('save')}</button></td>
+    </tr>`;
+  });
+  return `<table>${head}${rows}</table>
+    <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:12.5px;color:var(--ink-soft)">
+      <span>${t('recruitmentOnceFull')}: <b class="num">${fmtFull(f.recruitment.monthlyOnceFull,f)}</b></span>
+      <span>${t('recruitmentAnnual')}: <b class="num">${fmtFull(f.recruitment.annualFull,f)}</b></span>
+    </div>`;
+}
+function onSaveRecruitment(fid, idx, sId, dId){
+  const status = document.getElementById(sId).value;
+  const date = document.getElementById(dId).value;
+  saveRecruitment(fid, idx, status, date);
+}
+window.onSaveRecruitment = onSaveRecruitment;
+
+/* ---------- marketing panel ---------- */
+const SERIES_COLORS = ['var(--series-1)','var(--series-2)','var(--series-3)','var(--series-4)','var(--series-5)'];
+function marketingPanel(f){
+  const items = f.marketing.items;
+  const max = Math.max(...items.map(i=>i.monthly));
+  let rows = items.map((it,i)=>`
+    <div class="mkt-item">
+      <div class="mkt-toprow"><span class="mkt-label">${mktLabel(it)}</span><span class="mkt-val num">${fmtFull(it.monthly,f)}</span></div>
+      <div class="mkt-bar"><div style="width:${(it.monthly/max*100).toFixed(1)}%;background:${SERIES_COLORS[i%SERIES_COLORS.length]}"></div></div>
+    </div>`).join('');
+  return rows + `
+    <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12.5px;">
+      <span>${t('marketingMonthlyTotal')}</span><b class="num">${fmtFull(f.marketing.monthlyTotal,f)}</b>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-soft);">
+      <span>${t('marketingAnnualTotal')}</span><b class="num">${fmtFull(f.marketing.annualTotal,f)}</b>
+    </div>`;
+}
+
+/* ---------- credit line panel ---------- */
+function creditPanel(f){
+  const c = creditUtil(f);
+  const status = creditStatus(c.rate);
+  const dis = canEdit(f.id) ? '' : 'disabled';
+  const oId = 'cr_'+f.id;
+  const rec = RUNTIME.creditline[f.id];
+  const lastUpdate = rec && rec.updatedAt ? new Date(rec.updatedAt).toLocaleDateString(STATE.lang==='fr'?'fr-FR':'en-US') + (rec.updatedBy? ' '+t('by')+' '+rec.updatedBy:'') : '';
+  return `
+  <div class="gauge-wrap">
+    <div class="gauge-labels"><span>${t('creditRate')}</span><span class="num" style="font-weight:700">${fmtPct(c.rate)}</span></div>
+    <div class="gauge-track"><div class="gauge-fill" style="width:${Math.min(100,(c.rate||0)*100).toFixed(1)}%;background:var(--${status==='good'?'good':status})"></div></div>
+    <div class="gauge-labels"><span class="num">${fmtM(c.outstanding,f)}</span><span class="num">${fmtM(c.ceiling,f)}</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;font-size:12.5px;">
+    <div><div style="color:var(--ink-mute)">${t('creditCeiling')}</div><div class="num" style="font-weight:600">${fmtM(c.ceiling,f)}</div></div>
+    <div><div style="color:var(--ink-mute)">${t('creditMargin')}</div><div class="num" style="font-weight:600">${fmtM(c.margin,f)}</div></div>
+  </div>
+  <div style="margin-top:14px;">
+    <label class="field-label">${t('creditOutstandingEdit')}</label>
+    <div style="display:flex;gap:8px;">
+      <input id="${oId}" class="cell-input" style="width:100%" type="number" value="${c.outstanding}" ${dis}/>
+      <button class="save-btn" ${dis} onclick="onSaveCredit('${f.id}','${oId}')">${t('save')}</button>
+    </div>
+    ${lastUpdate ? `<div class="access-note" style="margin-top:8px;">${t('lastUpdated')}: ${lastUpdate}</div>` : ''}
+  </div>`;
+}
+function onSaveCredit(fid, oId){ saveCredit(fid, document.getElementById(oId).value); }
+window.onSaveCredit = onSaveCredit;
+
+/* ---------- notes panel ---------- */
+function notesPanel(f){
+  const dis = canEdit(f.id) ? '' : 'disabled';
+  const rec = RUNTIME.notes[f.id] || {};
+  const text = rec.text || '';
+  const lastUpdate = rec.updatedAt ? new Date(rec.updatedAt).toLocaleString(STATE.lang==='fr'?'fr-FR':'en-US') + (rec.updatedBy? ' '+t('by')+' '+rec.updatedBy:'') : '';
+  const nId = 'notes_'+f.id;
+  return `
+  <textarea class="notes" id="${nId}" placeholder="${t('notesPlaceholder')}" ${dis}>${text}</textarea>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+    <span class="access-note" style="border:none;background:none;padding:0;">${lastUpdate}</span>
+    <button class="save-btn" ${dis} onclick="saveNotes('${f.id}', document.getElementById('${nId}').value)">${t('save')}</button>
+  </div>`;
+}
+</script>
+
+<script>
+/* =========================================================================
+   ACCESS & ACTIVITY PANEL
+   Access itself is controlled entirely by this page's own Claude share
+   settings (outside this file) — this panel explains that and shows the
+   shared, live activity log.
+   ========================================================================= */
+function renderAdminPanel(){
+  return `
+  <div class="crumb">${t('tabAdmin')}</div>
+  <h1 class="display" style="font-size:26px;font-weight:600;margin:0 0 6px;">${t('adminTitle')}</h1>
+  <p style="max-width:680px;color:var(--ink-soft);font-size:13.5px;line-height:1.55;margin:0 0 10px;">${t('adminSub')}</p>
+  <div class="access-note" style="max-width:760px;">${t('shareNote')}</div>
+
+  <div class="section-title"><h2>${t('editPasscodeLabel')}</h2></div>
+  <div class="card pad" style="max-width:420px;">
+    <div style="display:flex;gap:8px;">
+      <input id="edit-code-input" class="cell-input" style="width:100%" type="password" value="${escapeAttr(STATE.editCode)}" placeholder="${t('editPasscodeLabel')}"/>
+      <button class="save-btn" onclick="setEditCode(document.getElementById('edit-code-input').value)">${t('editPasscodeBtn')}</button>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>${t('adminActivity')}</h2></div>
+  <div class="card pad">${renderActivityLog()}</div>
+  `;
+}
+
+function renderActivityLog(){
+  if(!RUNTIME.activity.length) return `<div style="font-size:12.5px;color:var(--ink-mute)">${t('adminNoActivity')}</div>`;
+  return `<div style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;">
+    ${RUNTIME.activity.slice(0,40).map(a=>`
+      <div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;border-bottom:1px solid var(--border);padding-bottom:7px;">
+        <span><b>${a.user}</b> — ${a.action}${a.detail?' · '+a.detail:''}</span>
+        <span class="num" style="color:var(--ink-mute);white-space:nowrap;">${new Date(a.ts).toLocaleString(STATE.lang==='fr'?'fr-FR':'en-US')}</span>
+      </div>`).join('')}
+  </div>`;
+}
+</script>
+
+<script>
+/* =========================================================================
+   INIT
+   ========================================================================= */
+render();
+initRemote();
+</script>
