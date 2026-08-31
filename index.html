@@ -1,0 +1,53 @@
+/**
+ * Rodis Filiales — live data backend (Google Apps Script Web App).
+ *
+ * Setup:
+ * 1. In the Google Sheet you want to use as the data store, open
+ *    Extensions > Apps Script.
+ * 2. Delete any starter code and paste this whole file in.
+ * 3. Change EDIT_PASSCODE below to a passcode of your choice — this is
+ *    what you'll share with people who should be able to ENTER data
+ *    (everyone with the dashboard link can already VIEW it).
+ * 4. Click Deploy > New deployment > gear icon > Web app.
+ *      Execute as:      Me
+ *      Who has access:  Anyone
+ * 5. Click Deploy, authorize when prompted, then copy the "Web app URL"
+ *    (it ends in /exec) — that's the GAS_URL the dashboard needs.
+ */
+
+var SHEET_NAME = 'RodisData';
+var EDIT_PASSCODE = 'CHANGE_ME';
+
+function getSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_NAME);
+    sh.getRange(1, 1).setValue('{}');
+  }
+  return sh;
+}
+
+function doGet(e) {
+  var sh = getSheet_();
+  var raw = sh.getRange(1, 1).getValue();
+  var body = (raw && String(raw).trim()) ? String(raw) : '{}';
+  return ContentService.createTextOutput(body).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    var payload = JSON.parse(e.postData.contents);
+    if (payload.passcode !== EDIT_PASSCODE) {
+      return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'bad_passcode' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    var sh = getSheet_();
+    sh.getRange(1, 1).setValue(JSON.stringify(payload.data));
+    return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
