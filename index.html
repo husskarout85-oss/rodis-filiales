@@ -2778,7 +2778,15 @@ function toast(msg, isErr){
    the shared figures on an interval and re-renders on change.
    ========================================================================= */
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyBHCaS5ylmAgZ-v6jomwbahGXHWlXngjSnkt9aEqEAdPeYDYq3rnoBF9jO8vSH-8qexw/exec'; // Apps Script /exec URL, baked in at build time
-const POLL_MS = 6000;
+// Apps Script Web Apps on the free tier have no guaranteed response time —
+// a request can quietly take anywhere from under a second to 15-20+
+// seconds under load (multiple open tabs all polling, concurrent writes
+// serialized by Google against the same spreadsheet). 15s keeps background
+// polling light enough to leave that headroom; a save still gets a longer
+// per-attempt budget plus one retry below, since a save mattering to the
+// user is worth waiting a bit longer for before calling it a failure.
+const POLL_MS = 15000;
+const GAS_TIMEOUT_MS = 25000;
 let pollTimer = null;
 let lastRemoteStr = null; // last JSON payload we actually rendered, to skip no-op re-renders
 
@@ -2790,9 +2798,36 @@ function userIsTyping(){
   return tag==='INPUT' || tag==='TEXTAREA' || tag==='SELECT';
 }
 
+// Apps Script under load can hang well past what fetch() would otherwise
+// wait forever for — bound every request so a stuck one fails fast enough
+// to retry, instead of leaving the user staring at a spinner indefinitely.
+async function fetchWithTimeout(url, opts, timeoutMs){
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), timeoutMs);
+  try{
+    return await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// One retry after a short pause absorbs most of the transient slowness /
+// request queueing Apps Script shows under concurrent access — the write
+// itself (a full RUNTIME overwrite) is safe to repeat if the first attempt
+// timed out client-side without us ever seeing its response.
 async function gasCall(body){
-  const res = await fetch(GAS_URL, { method:'POST', body: JSON.stringify(body) });
-  return res.json();
+  let lastErr;
+  for(let attempt=0; attempt<2; attempt++){
+    try{
+      const res = await fetchWithTimeout(GAS_URL, { method:'POST', body: JSON.stringify(body) }, GAS_TIMEOUT_MS);
+      if(!res.ok) throw new Error('http '+res.status);
+      return await res.json();
+    }catch(e){
+      lastErr = e;
+      if(attempt===0) await new Promise(r=>setTimeout(r, 1500));
+    }
+  }
+  throw lastErr;
 }
 
 async function initRemote(){
@@ -2803,7 +2838,7 @@ async function initRemote(){
 
 async function pollOnce(){
   try{
-    const res = await fetch(GAS_URL, { method:'GET', cache:'no-store' });
+    const res = await fetchWithTimeout(GAS_URL, { method:'GET', cache:'no-store' }, 20000);
     if(!res.ok) throw new Error('http '+res.status);
     const data = await res.json();
     const str = JSON.stringify(data);
@@ -3104,7 +3139,7 @@ function renderTabs(){
   return `<div class="tabs">${tabs}</div>`;
 }
 
-const BUILD_STAMP = '2026-09-02 14:18 UTC (v7-bilan-mkt)';
+const BUILD_STAMP = '2026-09-02 14:49 UTC (v8-retry-fix)';
 function renderFooter(){
   return `<footer class="appfoot">${t('footerNote')}<br><span style="opacity:.55;font-size:10.5px;">Build ${BUILD_STAMP}</span></footer>`;
 }
