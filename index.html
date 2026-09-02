@@ -2386,6 +2386,9 @@ const I18N = {
     total:"Total / Average — Year 1",
     save:"Save", saved:"Saved", na:"—", notStarted:"No data yet",
     marketingTitle:"Marketing budget (monthly)", marketingMonthlyTotal:"Monthly total", marketingAnnualTotal:"Annual total",
+    mktFollowupTitle:"Marketing spend follow-up", mktFollowupSub:"Actual spend by activity, entered month by month and tracked against the monthly and annual budget.",
+    mktSpentToDate:"Spent to date", mktAnnualBudget:"Annual budget", mktMonthlyBudget:"Monthly budget",
+    mktRowTotal:"Month total",
     recruitmentTitle:"Hiring plan", recruitmentSub:"positions to fill for this subsidiary to reach full operating capacity",
     rTitle:"Position", rLevel:"Level", rCity:"City", rSalary:"Est. salary / month", rHireMonth:"Planned hire month",
     rStatus:"Status", rActualDate:"Actual hire date", rNote:"Note",
@@ -2437,9 +2440,8 @@ const I18N = {
     bilanTotalAssets:"Total Assets", bilanTotalLiabilities:"Total Liabilities",
     bilanNetPosition:"Net Position (Assets − Liabilities)",
     bilanStock:"Stock valuation", bilanAvarie:"Avarie stock (damaged / lost / expired)",
-    bilanAvarieNote:"Shown for visibility — excluded from Total Assets since this stock isn't usable or sellable.",
     bilanCash:"Cash balance", bilanBank:"Bank balance",
-    bilanReceivables:"Customer receivables", bilanClientCredits:"Client credits / advances",
+    bilanReceivables:"Customer credit",
     bilanRodisPayable:"Rodis payable", bilanOtherPayables:"Other supplier payables",
     bilanOtherAssets:"Other assets", bilanOtherLiabilities:"Other liabilities",
     bilanAddTx:"Add a transaction", bilanTxDate:"Date", bilanTxCategory:"Category",
@@ -2478,6 +2480,9 @@ const I18N = {
     total:"Total / Moyenne — Année 1",
     save:"Enregistrer", saved:"Enregistré", na:"—", notStarted:"Aucune donnée",
     marketingTitle:"Budget marketing (mensuel)", marketingMonthlyTotal:"Total mensuel", marketingAnnualTotal:"Total annuel",
+    mktFollowupTitle:"Suivi des dépenses marketing", mktFollowupSub:"Dépenses réelles par activité, saisies mois par mois et suivies par rapport au budget mensuel et annuel.",
+    mktSpentToDate:"Dépensé à date", mktAnnualBudget:"Budget annuel", mktMonthlyBudget:"Budget mensuel",
+    mktRowTotal:"Total du mois",
     recruitmentTitle:"Plan de recrutement", recruitmentSub:"postes à pourvoir pour atteindre la pleine capacité opérationnelle",
     rTitle:"Poste", rLevel:"Niveau", rCity:"Ville", rSalary:"Salaire estimé / mois", rHireMonth:"Mois d'embauche prévu",
     rStatus:"Statut", rActualDate:"Date d'embauche réelle", rNote:"Note",
@@ -2529,9 +2534,8 @@ const I18N = {
     bilanTotalAssets:"Total actif", bilanTotalLiabilities:"Total passif",
     bilanNetPosition:"Position nette (Actif − Passif)",
     bilanStock:"Valorisation du stock", bilanAvarie:"Stock avarié (endommagé / perdu / périmé)",
-    bilanAvarieNote:"Affiché pour information — exclu du total actif car ce stock n'est ni utilisable ni vendable.",
     bilanCash:"Solde caisse", bilanBank:"Solde bancaire",
-    bilanReceivables:"Créances clients", bilanClientCredits:"Avoirs / avances clients",
+    bilanReceivables:"Crédit client",
     bilanRodisPayable:"Dû à Rodis", bilanOtherPayables:"Autres fournisseurs à payer",
     bilanOtherAssets:"Autres actifs", bilanOtherLiabilities:"Autres passifs",
     bilanAddTx:"Ajouter une transaction", bilanTxDate:"Date", bilanTxCategory:"Catégorie",
@@ -2560,7 +2564,7 @@ function saveLocal(key, val){ try{ localStorage.setItem(key,val); }catch(e){} }
 // Shared live state — populated from the `db` capability once it resolves.
 // Never persisted inside the page itself; RUNTIME_DEFAULTS is just the shape
 // used before the first snapshot arrives (or when db is unavailable).
-function runtimeDefaults(){ return { users:[], actuals:{}, creditline:{}, recruitment:{}, notes:{}, activity:[], bilanTx:{} }; }
+function runtimeDefaults(){ return { users:[], actuals:{}, creditline:{}, recruitment:{}, notes:{}, activity:[], bilanTx:{}, marketing:{} }; }
 let RUNTIME = runtimeDefaults();
 function mergeRuntime(data){
   const d = data || {};
@@ -2573,6 +2577,7 @@ function mergeRuntime(data){
     notes: d.notes || {},
     activity: d.activity || [],
     bilanTx: d.bilanTx || {},
+    marketing: d.marketing || {},
   };
 }
 
@@ -2600,13 +2605,12 @@ const CURRENCY_LABEL = { NGN:'NGN', XOF:'FCFA', XAF:'FCFA' };
    ledger per subsidiary. Every balance below is the sum of that
    category's transactions dated on/before the chosen cut-off date.
    ========================================================================= */
-const BILAN_ASSET_CATS = ['stock','cash','bank','receivables','otherAssets'];
-const BILAN_LIAB_CATS = ['clientCredits','rodisPayable','otherPayables','otherLiabilities'];
-const BILAN_MEMO_CATS = ['avarie']; // disclosed separately, excluded from Total Assets
-const BILAN_ALL_CATS = BILAN_ASSET_CATS.concat(BILAN_LIAB_CATS, BILAN_MEMO_CATS);
+const BILAN_ASSET_CATS = ['stock','avarie','cash','bank','receivables','otherAssets'];
+const BILAN_LIAB_CATS = ['rodisPayable','otherPayables','otherLiabilities'];
+const BILAN_ALL_CATS = BILAN_ASSET_CATS.concat(BILAN_LIAB_CATS);
 const BILAN_CAT_KEY = {
   stock:'bilanStock', avarie:'bilanAvarie', cash:'bilanCash', bank:'bilanBank',
-  receivables:'bilanReceivables', clientCredits:'bilanClientCredits', rodisPayable:'bilanRodisPayable',
+  receivables:'bilanReceivables', rodisPayable:'bilanRodisPayable',
   otherPayables:'bilanOtherPayables', otherAssets:'bilanOtherAssets', otherLiabilities:'bilanOtherLiabilities',
 };
 function bilanCatLabel(cat){ return t(BILAN_CAT_KEY[cat] || cat); }
@@ -2722,6 +2726,32 @@ function bilanSnapshot(filialeId, cutoffDate){
   return Object.assign({}, bal, {
     totalAssets, totalLiabilities, net: totalAssets - totalLiabilities,
   });
+}
+
+/* =========================================================================
+   MARKETING SPEND FOLLOW-UP
+   Actual spend per activity, entered per month. Keyed flatly as
+   "<filialeId>_<monthKey>_<itemIndex>" (monthKey has no underscore, so
+   splitting on "_" always yields exactly those three parts back).
+   ========================================================================= */
+function marketingKey(filialeId, monthKey, idx){ return filialeId+'_'+monthKey+'_'+idx; }
+function marketingSpentAt(filialeId, monthKey, idx){
+  const rec = RUNTIME.marketing[marketingKey(filialeId, monthKey, idx)];
+  return rec && rec.spent!==undefined && rec.spent!==null ? Number(rec.spent) : null;
+}
+function marketingActivityToDate(filialeId, idx){
+  let sum = 0;
+  Object.keys(RUNTIME.marketing).forEach(key=>{
+    const parts = key.split('_');
+    const kIdx = parts.pop();
+    parts.pop(); // monthKey, unused here
+    const kFiliale = parts.join('_');
+    if(kFiliale===filialeId && String(kIdx)===String(idx)){
+      const rec = RUNTIME.marketing[key];
+      if(rec && rec.spent!==undefined && rec.spent!==null) sum += Number(rec.spent);
+    }
+  });
+  return sum;
 }
 </script>
 
@@ -2881,6 +2911,25 @@ async function deleteBilanTx(filialeId, txId){
   await persist(filialeId);
 }
 window.addBilanTx = addBilanTx; window.deleteBilanTx = deleteBilanTx;
+
+/* ---------- marketing spend follow-up ---------- */
+async function saveMarketingRow(filialeId, monthKey, itemCount){
+  if(!canEdit(filialeId)) return;
+  for(let idx=0; idx<itemCount; idx++){
+    const el = document.getElementById('mk_'+marketingKey(filialeId, monthKey, idx));
+    const val = el ? el.value : '';
+    const key = marketingKey(filialeId, monthKey, idx);
+    if(val===''||val===undefined){
+      delete RUNTIME.marketing[key];
+    } else {
+      RUNTIME.marketing[key] = { spent:Number(val), updatedAt:new Date().toISOString(), updatedBy: currentName() };
+    }
+  }
+  pushActivity('marketing', filialeId+' '+monthKey);
+  render();
+  await persist(filialeId);
+}
+window.saveMarketingRow = saveMarketingRow;
 
 /* ---------- auth actions ---------- */
 async function doLogin(username, password){
@@ -3055,7 +3104,7 @@ function renderTabs(){
   return `<div class="tabs">${tabs}</div>`;
 }
 
-const BUILD_STAMP = '2026-08-31 16:28 UTC (v6-bilan)';
+const BUILD_STAMP = '2026-09-02 14:18 UTC (v7-bilan-mkt)';
 function renderFooter(){
   return `<footer class="appfoot">${t('footerNote')}<br><span style="opacity:.55;font-size:10.5px;">Build ${BUILD_STAMP}</span></footer>`;
 }
@@ -3331,6 +3380,8 @@ function renderFilialeDetail(f){
     </div>
   </div>
 
+  ${renderMarketingFollowup(f)}
+
   ${f.trucksTargetPerYear ? `
   <div class="section-title"><h2>${t('trucksTitle')}</h2></div>
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
@@ -3461,6 +3512,58 @@ function marketingPanel(f){
     </div>`;
 }
 
+/* ---------- marketing spend follow-up (actuals, per activity per month) ---------- */
+function renderMarketingFollowup(f){
+  const items = f.marketing.items;
+  const dis = canEdit(f.id) ? '' : 'disabled';
+
+  const gauges = items.map((it,idx)=>{
+    const spent = marketingActivityToDate(f.id, idx);
+    const annual = it.monthly*12;
+    const rate = annual ? spent/annual : null;
+    const status = creditStatus(rate);
+    return `
+    <div class="card pad">
+      <div style="font-size:12.5px;font-weight:700;margin-bottom:8px;">${mktLabel(it)}</div>
+      <div class="gauge-wrap">
+        <div class="gauge-labels"><span>${t('mktSpentToDate')}</span><span class="num" style="font-weight:700">${fmtPct(rate)}</span></div>
+        <div class="gauge-track"><div class="gauge-fill" style="width:${Math.min(100,(rate||0)*100).toFixed(1)}%;background:var(--${status==='good'?'good':status})"></div></div>
+        <div class="gauge-labels"><span class="num">${fmtFull(spent,f)}</span><span class="num">${fmtFull(annual,f)}</span></div>
+      </div>
+      <div style="font-size:11px;color:var(--ink-mute);margin-top:8px;">${t('mktMonthlyBudget')}: ${fmtFull(it.monthly,f)}</div>
+    </div>`;
+  }).join('');
+
+  let head = `<tr><th>${t('tblMonth')}</th>`;
+  items.forEach(it=>{ head += `<th>${mktLabel(it)}</th>`; });
+  head += `<th>${t('mktRowTotal')}</th><th></th></tr>`;
+
+  const rows = f.monthly.map(m=>{
+    let rowTotal = 0;
+    let cells = '';
+    items.forEach((it,idx)=>{
+      const val = marketingSpentAt(f.id, m.monthKey, idx);
+      if(val!==null) rowTotal += val;
+      const cId = 'mk_'+marketingKey(f.id, m.monthKey, idx);
+      cells += `<td><input id="${cId}" class="cell-input" type="number" value="${val===null?'':val}" ${dis} placeholder="${t('na')}"/></td>`;
+    });
+    return `<tr>
+      <td>${monthLabel(m)}</td>
+      ${cells}
+      <td class="num">${fmtFull(rowTotal,f)}</td>
+      <td><button class="save-btn" ${dis} onclick="saveMarketingRow('${f.id}','${m.monthKey}',${items.length})">${t('save')}</button></td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="section-title"><h2>${t('mktFollowupTitle')}</h2></div>
+  <p style="max-width:680px;color:var(--ink-soft);font-size:13px;line-height:1.5;margin:0 0 12px;">${t('mktFollowupSub')}</p>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:16px;">${gauges}</div>
+  <div class="card table-wrap pad">
+    <table>${head}${rows}</table>
+  </div>`;
+}
+
 /* ---------- credit line panel ---------- */
 function creditPanel(f){
   const c = creditUtil(f);
@@ -3554,13 +3657,6 @@ function renderBilanView(){
           <tr class="total-row"><td>${t('bilanTotalAssets')}</td><td class="num">${fmtFull(snap.totalAssets,f)}</td></tr>
         </table>
       </div>
-      <div class="card pad" style="margin-top:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
-          <span style="font-size:12.5px;color:var(--ink-soft);">${bilanCatLabel('avarie')}</span>
-          <b class="num">${fmtFull(snap.avarie,f)}</b>
-        </div>
-        <div class="access-note" style="margin-top:8px;">${t('bilanAvarieNote')}</div>
-      </div>
     </div>
     <div>
       <div class="section-title" style="margin-top:0;"><h2>${t('bilanLiabilities')}</h2></div>
@@ -3584,7 +3680,7 @@ function renderBilanView(){
       <div><label class="field-label">${t('bilanTxDate')}</label><input id="btx-date" class="cell-input" style="width:100%" type="date" value="${cutoff}" ${editable?'':'disabled'}/></div>
       <div><label class="field-label">${t('bilanTxCategory')}</label>
         <select id="btx-cat" class="cell-input" style="width:100%" ${editable?'':'disabled'}>
-          ${BILAN_ASSET_CATS.concat(BILAN_LIAB_CATS,BILAN_MEMO_CATS).map(c=>`<option value="${c}">${bilanCatLabel(c)}</option>`).join('')}
+          ${BILAN_ASSET_CATS.concat(BILAN_LIAB_CATS).map(c=>`<option value="${c}">${bilanCatLabel(c)}</option>`).join('')}
         </select>
       </div>
       <div><label class="field-label">${t('bilanTxAmount')}</label><input id="btx-amount" class="cell-input" style="width:100%" type="number" placeholder="0" ${editable?'':'disabled'}/></div>
@@ -3632,7 +3728,7 @@ function bilanHistoryTable(f){
 }
 
 function renderBilanConsolidated(cutoff){
-  const rows = BILAN_ASSET_CATS.concat(['totalAssets'], BILAN_MEMO_CATS, BILAN_LIAB_CATS, ['totalLiabilities','net']);
+  const rows = BILAN_ASSET_CATS.concat(['totalAssets'], BILAN_LIAB_CATS, ['totalLiabilities','net']);
   return `
   <div class="section-title"><h2>${t('bilanConsolidated')}</h2></div>
   <div class="access-note" style="max-width:900px;margin-bottom:10px;">${t('bilanConsolidatedSub')}</div>
