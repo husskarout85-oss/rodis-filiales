@@ -2382,7 +2382,7 @@ const I18N = {
     legendPlan:"Plan target", legendActual:"Actual (by status)",
     tblMonth:"Month", tblCartonsPlan:"Cartons (plan)", tblCartonsActual:"Cartons (actual)",
     tblRevPlan:"Revenue plan", tblRevActual:"Revenue actual", tblAttain:"Attainment", tblStatus:"Status",
-    tblDistRevPlan:"Distributor revenue (plan)",
+    tblDistRevPlan:"Distributor revenue (plan)", tblDistRevActual:"Distributor revenue (current)",
     total:"Total / Average — Year 1",
     save:"Save", saved:"Saved", na:"—", notStarted:"No data yet",
     marketingTitle:"Marketing budget (monthly)", marketingMonthlyTotal:"Monthly total", marketingAnnualTotal:"Annual total",
@@ -2476,7 +2476,7 @@ const I18N = {
     legendPlan:"Objectif du plan", legendActual:"Réalisé (par statut)",
     tblMonth:"Mois", tblCartonsPlan:"Cartons (plan)", tblCartonsActual:"Cartons (réalisé)",
     tblRevPlan:"CA plan", tblRevActual:"CA réalisé", tblAttain:"Atteinte", tblStatus:"Statut",
-    tblDistRevPlan:"CA distributeur (plan)",
+    tblDistRevPlan:"CA distributeur (plan)", tblDistRevActual:"CA distributeur (actuel)",
     total:"Total / Moyenne — Année 1",
     save:"Enregistrer", saved:"Enregistré", na:"—", notStarted:"Aucune donnée",
     marketingTitle:"Budget marketing (mensuel)", marketingMonthlyTotal:"Total mensuel", marketingAnnualTotal:"Total annuel",
@@ -2777,7 +2777,7 @@ function toast(msg, isErr){
    being changed (checked server-side in Code.gs). Every open tab polls
    the shared figures on an interval and re-renders on change.
    ========================================================================= */
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyBHCaS5ylmAgZ-v6jomwbahGXHWlXngjSnkt9aEqEAdPeYDYq3rnoBF9jO8vSH-8qexw/exec'; // Apps Script /exec URL, baked in at build time
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbx8tmy2wWTKrYBqSLMGSFAygp8em5TdHIfRZ4FG1kTzLaEt9_yVLj8kdQItADcrrmnq/exec'; // Apps Script /exec URL, baked in at build time
 // Apps Script Web Apps on the free tier have no guaranteed response time —
 // a request can quietly take anywhere from under a second to 15-20+
 // seconds under load (multiple open tabs all polling, concurrent writes
@@ -2887,12 +2887,13 @@ async function persist(filialeId){
   }
 }
 
-async function saveActual(filialeId, monthKey, cartonsVal, revenueVal){
+async function saveActual(filialeId, monthKey, cartonsVal, revenueVal, distRevenueVal){
   if(!canEdit(filialeId)) return;
   const cartons = cartonsVal===''||cartonsVal===undefined ? null : Number(cartonsVal);
   const revenue = revenueVal===''||revenueVal===undefined ? null : Number(revenueVal);
+  const distRevenue = distRevenueVal===''||distRevenueVal===undefined ? null : Number(distRevenueVal);
   const key = filialeId+'_'+monthKey;
-  RUNTIME.actuals[key] = { cartonsActual: cartons, revenueActual: revenue, updatedAt:new Date().toISOString(), updatedBy: currentName() };
+  RUNTIME.actuals[key] = { cartonsActual: cartons, revenueActual: revenue, distRevenueActual: distRevenue, updatedAt:new Date().toISOString(), updatedBy: currentName() };
   pushActivity('actual', filialeId+' '+monthKey);
   render();
   await persist(filialeId);
@@ -3139,7 +3140,7 @@ function renderTabs(){
   return `<div class="tabs">${tabs}</div>`;
 }
 
-const BUILD_STAMP = '2026-09-02 14:49 UTC (v8-retry-fix)';
+const BUILD_STAMP = '2026-09-02 15:28 UTC (v11-newurl-lock)';
 function renderFooter(){
   return `<footer class="appfoot">${t('footerNote')}<br><span style="opacity:.55;font-size:10.5px;">Build ${BUILD_STAMP}</span></footer>`;
 }
@@ -3450,25 +3451,27 @@ function monthlyTable(f){
   const dis = canEdit(f.id) ? '' : 'disabled';
   let head = `<tr><th>${t('tblMonth')}</th>`;
   if(hasCartons) head += `<th>${t('tblCartonsPlan')}</th><th>${t('tblCartonsActual')}</th>`;
-  head += `<th>${t('tblRevPlan')}</th><th>${t('tblRevActual')}</th><th>${t('tblDistRevPlan')}</th><th>${t('tblAttain')}</th><th>${t('tblStatus')}</th><th></th></tr>`;
+  head += `<th>${t('tblRevPlan')}</th><th>${t('tblRevActual')}</th><th>${t('tblDistRevPlan')}</th><th>${t('tblDistRevActual')}</th><th>${t('tblAttain')}</th><th>${t('tblStatus')}</th><th></th></tr>`;
 
   let rows='';
   f.monthly.forEach(m=>{
     const rec = RUNTIME.actuals[f.id+'_'+m.monthKey] || {};
     const cartonsActual = rec.cartonsActual!==undefined && rec.cartonsActual!==null ? rec.cartonsActual : '';
     const revenueActual = rec.revenueActual!==undefined && rec.revenueActual!==null ? rec.revenueActual : '';
+    const distRevenueActual = rec.distRevenueActual!==undefined && rec.distRevenueActual!==null ? rec.distRevenueActual : '';
     const ratio = (revenueActual!=='' && !isNaN(revenueActual)) ? Number(revenueActual)/m.revenueRodis : null;
     const status = statusForRatio(ratio);
-    const cId = 'c_'+f.id+'_'+m.monthKey, rId = 'r_'+f.id+'_'+m.monthKey;
+    const cId = 'c_'+f.id+'_'+m.monthKey, rId = 'r_'+f.id+'_'+m.monthKey, dId = 'd_'+f.id+'_'+m.monthKey;
     rows += `<tr>
       <td>${monthLabel(m)}</td>
       ${hasCartons ? `<td class="num">${fmtInt(m.cartons)}</td><td><input id="${cId}" class="cell-input" type="number" value="${cartonsActual}" ${dis} placeholder="${t('na')}"/></td>` : ''}
       <td class="num">${fmtM(m.revenueRodis,f,1)}</td>
       <td><input id="${rId}" class="cell-input" type="number" value="${revenueActual}" ${dis} placeholder="${t('na')}"/></td>
       <td class="num">${fmtM(m.revenueDistributor,f,1)}</td>
+      <td><input id="${dId}" class="cell-input" type="number" value="${distRevenueActual}" ${dis} placeholder="${t('na')}"/></td>
       <td class="num">${ratio!==null?fmtPct(ratio):t('na')}</td>
       <td><span class="pill ${status}"><span class="dot ${status}"></span>${statusLabel(status)}</span></td>
-      <td><button class="save-btn" ${dis} onclick="onSaveMonth('${f.id}','${m.monthKey}','${hasCartons?cId:''}','${rId}')">${t('save')}</button></td>
+      <td><button class="save-btn" ${dis} onclick="onSaveMonth('${f.id}','${m.monthKey}','${hasCartons?cId:''}','${rId}','${dId}')">${t('save')}</button></td>
     </tr>`;
   });
 
@@ -3478,15 +3481,17 @@ function monthlyTable(f){
     ${hasCartons ? `<td class="num">${fmtInt(tot.cartons)}</td><td></td>` : ''}
     <td class="num">${fmtM(tot.revenueRodis,f,1)}</td><td></td>
     <td class="num">${fmtM(tot.revenueDistributor,f,1)}</td>
+    <td></td>
     <td></td><td></td><td></td>
   </tr>`;
 
   return `<table>${head}${rows}</table>`;
 }
-function onSaveMonth(fid, monthKey, cId, rId){
+function onSaveMonth(fid, monthKey, cId, rId, dId){
   const cVal = cId ? document.getElementById(cId).value : '';
   const rVal = document.getElementById(rId).value;
-  saveActual(fid, monthKey, cVal, rVal);
+  const dVal = dId ? document.getElementById(dId).value : '';
+  saveActual(fid, monthKey, cVal, rVal, dVal);
 }
 window.onSaveMonth = onSaveMonth;
 
