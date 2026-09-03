@@ -2457,6 +2457,12 @@ const I18N = {
     bilanConsolidatedSub:"Same cut-off date, all labeled FCFA (Nigeria's figures are the same numbers as stored, not converted). Columns aren't summed into a group total.",
     bilanFillRequired:"Pick a category and enter a non-zero amount.",
     bilanEnteredBy:"by", bilanReadOnly:"You have view access here — ask your admin for data-entry access to record transactions.",
+    dailyExpensesTitle:"Daily expenses", dailyExpensesSub:"Log day-to-day operating expenses (fuel, transport, repairs, sundry, etc.) — each one is recorded as a cash outflow and reduces the cash balance above as of its date.",
+    dailyExpLabel:"Description", dailyExpPlaceholder:"e.g. Fuel, transport, repairs",
+    dailyExpAmount:"Amount", dailyExpAdd:"Add expense", dailyExpTotal:"Total expenses (as of cutoff)",
+    dailyExpHistory:"Expense history", dailyExpNoEntries:"No expenses recorded yet for this subsidiary.",
+    dailyExpFillRequired:"Enter a date, a description, and an amount greater than zero.",
+    expenseAdded:"Expense added.",
   },
   fr: {
     appName:"Rodis", appSub:"Plans filiales — Année 1",
@@ -2556,6 +2562,12 @@ const I18N = {
     bilanConsolidatedSub:"Même date de référence, tout étiqueté FCFA (les chiffres du Nigeria sont les mêmes que ceux enregistrés, non convertis). Les colonnes ne sont pas additionnées en un total de groupe.",
     bilanFillRequired:"Choisissez une catégorie et saisissez un montant non nul.",
     bilanEnteredBy:"par", bilanReadOnly:"Vous avez un accès en lecture ici — demandez à votre administrateur un accès en saisie pour enregistrer des transactions.",
+    dailyExpensesTitle:"Dépenses courantes", dailyExpensesSub:"Enregistrez les dépenses de fonctionnement au fil de l'eau (carburant, transport, réparations, divers, etc.) — chacune est comptée comme une sortie de trésorerie et réduit le solde de caisse ci-dessus à sa date.",
+    dailyExpLabel:"Description", dailyExpPlaceholder:"ex. Carburant, transport, réparations",
+    dailyExpAmount:"Montant", dailyExpAdd:"Ajouter la dépense", dailyExpTotal:"Total des dépenses (à la date de référence)",
+    dailyExpHistory:"Historique des dépenses", dailyExpNoEntries:"Aucune dépense enregistrée pour cette filiale.",
+    dailyExpFillRequired:"Saisissez une date, une description et un montant supérieur à zéro.",
+    expenseAdded:"Dépense ajoutée.",
   }
 };
 function t(k){ const s=(I18N[STATE.lang]&&I18N[STATE.lang][k]) || I18N.en[k] || k; return s; }
@@ -2769,6 +2781,20 @@ function bilanSnapshot(filialeId, cutoffDate){
   return Object.assign({}, bal, {
     totalAssets, totalLiabilities, net: totalAssets - totalLiabilities,
   });
+}
+
+/* Daily expenses are just bilanTx entries tagged kind:'expense', always
+   category:'cash' with a negative amount — so they're already counted in
+   the cash balance above via bilanBalance/bilanSnapshot. These two
+   helpers only filter/sum that same array for the dedicated expense
+   history + running-total UI; they don't add a new balance category. */
+function dailyExpenseList(filialeId){
+  return bilanTxList(filialeId).filter(tx=>tx.kind==='expense').slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+}
+function dailyExpenseTotal(filialeId, cutoffDate){
+  return dailyExpenseList(filialeId)
+    .filter(tx=>tx.date && tx.date<=cutoffDate)
+    .reduce((sum,tx)=>sum+Math.abs(Number(tx.amount)||0), 0);
 }
 
 /* =========================================================================
@@ -2989,7 +3015,30 @@ async function deleteBilanTx(filialeId, txId){
   render();
   await persist(filialeId);
 }
-window.addBilanTx = addBilanTx; window.deleteBilanTx = deleteBilanTx;
+/* A daily expense is just a bilanTx entry: category is always 'cash' and
+   the amount is always stored negative (an outflow), so it's picked up
+   automatically by bilanBalance/bilanSnapshot's cash total — no new
+   balance-sheet category needed. kind:'expense' only tags it so
+   dailyExpenseList/dailyExpenseTotal can find it again for its own
+   dedicated entry form + history, separate from the general ledger form. */
+async function addDailyExpense(filialeId, date, label, amountVal){
+  if(!canEdit(filialeId)) return;
+  const amount = Number(amountVal);
+  const desc = String(label||'').trim();
+  if(!date || !desc || !amount || amount<=0){ toast(t('dailyExpFillRequired'), true); return; }
+  RUNTIME.bilanTx = RUNTIME.bilanTx || {};
+  RUNTIME.bilanTx[filialeId] = RUNTIME.bilanTx[filialeId] || [];
+  RUNTIME.bilanTx[filialeId].push({
+    id: 'tx_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    date, category: 'cash', amount: -Math.abs(amount), note: desc, kind: 'expense',
+    enteredBy: currentName(), ts: new Date().toISOString(),
+  });
+  pushActivity('expense', filialeId+' · '+desc);
+  toast(t('expenseAdded'), false);
+  render();
+  await persist(filialeId);
+}
+window.addBilanTx = addBilanTx; window.deleteBilanTx = deleteBilanTx; window.addDailyExpense = addDailyExpense;
 
 /* ---------- marketing spend follow-up ---------- */
 async function saveMarketingRow(filialeId, monthKey, itemCount){
@@ -3183,7 +3232,7 @@ function renderTabs(){
   return `<div class="tabs">${tabs}</div>`;
 }
 
-const BUILD_STAMP = '2026-09-03 14:41 UTC (v15-nigeria-onlyone-converts)';
+const BUILD_STAMP = '2026-09-03 16:06 UTC (v16-daily-expenses)';
 function renderFooter(){
   return `<footer class="appfoot">${t('footerNote')}<br><span style="opacity:.55;font-size:10.5px;">Build ${BUILD_STAMP}</span></footer>`;
 }
@@ -3831,6 +3880,8 @@ function renderBilanView(){
   <div class="section-title"><h2>${t('bilanHistory')}</h2></div>
   <div class="card table-wrap pad">${bilanHistoryTable(f)}</div>
 
+  ${dailyExpensesSection(f, cutoff, editable)}
+
   ${isAdmin() ? renderBilanConsolidated(cutoff) : ''}
   `;
 }
@@ -3850,7 +3901,11 @@ window.onAddBilanTx = onAddBilanTx;
 
 function bilanHistoryTable(f){
   const editable = canEdit(f.id);
-  const txs = bilanTxList(f.id).slice().sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:(a.ts<b.ts?1:-1)) );
+  // Daily-expense entries (kind:'expense') are still counted in the cash
+  // balance above, but they get their own dedicated form + history below,
+  // so they're excluded here to avoid listing every fuel/transport line
+  // twice on the page.
+  const txs = bilanTxList(f.id).filter(tx=>tx.kind!=='expense').slice().sort((a,b)=> a.date<b.date?1:(a.date>b.date?-1:(a.ts<b.ts?1:-1)) );
   if(!txs.length) return `<div style="font-size:12.5px;color:var(--ink-mute);padding:4px 0;">${t('bilanNoTx')}</div>`;
   const head = `<tr><th>${t('bilanTxDate')}</th><th>${t('bilanTxCategory')}</th><th>${t('bilanTxAmount')}</th><th style="text-align:left;">${t('bilanTxNote')}</th><th></th>${editable?'<th></th>':''}</tr>`;
   const rows = txs.map(tx=>`<tr>
@@ -3858,6 +3913,61 @@ function bilanHistoryTable(f){
     <td>${bilanCatLabel(tx.category)}</td>
     <td class="num">${fmtFull(tx.amount,f)}</td>
     <td style="text-align:left;white-space:normal;">${escapeAttr(tx.note||'')}</td>
+    <td style="text-align:left;white-space:normal;color:var(--ink-mute);font-size:11.5px;">${tx.enteredBy?(t('bilanEnteredBy')+' '+escapeAttr(tx.enteredBy)):''}</td>
+    ${editable?`<td><button class="save-btn" style="background:#b3413d" onclick="deleteBilanTx('${f.id}','${tx.id}')">${t('bilanTxDelete')}</button></td>`:''}
+  </tr>`).join('');
+  return `<table>${head}${rows}</table>`;
+}
+
+/* Daily expenses: a one-at-a-time dated form (date, description, amount)
+   that always writes category:'cash', amount negative — a plain cash
+   outflow, already picked up by bilanSnapshot's cash total above. This
+   section is just a friendlier, purpose-built entry point + its own
+   filtered history/total on top of the same bilanTx array. */
+function dailyExpensesSection(f, cutoff, editable){
+  const total = dailyExpenseTotal(f.id, cutoff);
+  return `
+  <div class="section-title"><h2>${t('dailyExpensesTitle')}</h2></div>
+  <p style="max-width:680px;color:var(--ink-soft);font-size:13px;line-height:1.55;margin:0 0 10px;">${t('dailyExpensesSub')}</p>
+  <div class="card pad" style="max-width:820px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;">
+      <div><label class="field-label">${t('bilanTxDate')}</label><input id="dexp-date" class="cell-input" style="width:100%" type="date" value="${cutoff}" ${editable?'':'disabled'}/></div>
+      <div><label class="field-label">${t('dailyExpLabel')}</label><input id="dexp-label" class="cell-input" style="width:100%" type="text" placeholder="${t('dailyExpPlaceholder')}" ${editable?'':'disabled'}/></div>
+      <div><label class="field-label">${t('dailyExpAmount')}${f.currency==='NGN'?' (NGN)':''}</label><input id="dexp-amount" class="cell-input" style="width:100%" type="number" min="0" placeholder="0" ${editable?'':'disabled'}/></div>
+    </div>
+    <div style="margin-top:10px;">
+      <button class="save-btn" ${editable?'':'disabled'} onclick="onAddDailyExpense('${f.id}')">${t('dailyExpAdd')}</button>
+    </div>
+  </div>
+
+  <div class="card kpi" style="max-width:320px;margin-top:14px;">
+    <div class="label">${t('dailyExpTotal')}</div>
+    <div class="value num">${fmtFull(total,f)}</div>
+    <div class="sub">${t('bilanCutoff')} ${cutoff}</div>
+  </div>
+
+  <div class="section-title"><h2>${t('dailyExpHistory')}</h2></div>
+  <div class="card table-wrap pad">${dailyExpenseHistoryTable(f)}</div>
+  `;
+}
+
+function onAddDailyExpense(fid){
+  const date = document.getElementById('dexp-date').value;
+  const label = document.getElementById('dexp-label').value;
+  const amount = document.getElementById('dexp-amount').value;
+  addDailyExpense(fid, date, label, amount);
+}
+window.onAddDailyExpense = onAddDailyExpense;
+
+function dailyExpenseHistoryTable(f){
+  const editable = canEdit(f.id);
+  const txs = dailyExpenseList(f.id);
+  if(!txs.length) return `<div style="font-size:12.5px;color:var(--ink-mute);padding:4px 0;">${t('dailyExpNoEntries')}</div>`;
+  const head = `<tr><th>${t('bilanTxDate')}</th><th>${t('dailyExpLabel')}</th><th>${t('dailyExpAmount')}</th><th></th>${editable?'<th></th>':''}</tr>`;
+  const rows = txs.map(tx=>`<tr>
+    <td>${tx.date}</td>
+    <td style="text-align:left;white-space:normal;">${escapeAttr(tx.note||'')}</td>
+    <td class="num">${fmtFull(Math.abs(Number(tx.amount)||0),f)}</td>
     <td style="text-align:left;white-space:normal;color:var(--ink-mute);font-size:11.5px;">${tx.enteredBy?(t('bilanEnteredBy')+' '+escapeAttr(tx.enteredBy)):''}</td>
     ${editable?`<td><button class="save-btn" style="background:#b3413d" onclick="deleteBilanTx('${f.id}','${tx.id}')">${t('bilanTxDelete')}</button></td>`:''}
   </tr>`).join('');
