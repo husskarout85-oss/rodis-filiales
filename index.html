@@ -2375,10 +2375,10 @@ const I18N = {
     backToOverview:"← All subsidiaries",
     distributor:"Local distributor", period:"Plan period", currency:"Currency",
     fxRateLabel:"Exchange rate (NGN → FCFA)", fxRateSave:"Update rate",
-    fxRateHint:"Nigeria's figures are shown converted to FCFA below, to match the other subsidiaries. Only the fields marked (NGN) are entered and stored in Naira.",
+    fxRateHint:"This rate is used only to compute the FCFA read-out next to distributor revenue (current), in the monthly table below. Every other figure on this page shows its stored number labeled FCFA, unconverted.",
     fxRateUpdated:"Exchange rate updated", ngnEntryNote:"entered in Naira",
-    mktNgnHint:"Amounts entered below are in Naira; totals and gauges are shown converted to FCFA.",
-    bilanNgnHint:"Amounts entered below are in Naira; the statement above is shown converted to FCFA.",
+    mktNgnHint:"Amounts entered below are in Naira; totals and gauges show the same number labeled FCFA (no conversion).",
+    bilanNgnHint:"Amounts entered below are in Naira; the statement above shows the same numbers labeled FCFA (no conversion).",
     kpiAnnualObjective:"Year‑1 objective", kpiMonthlyObjective:"Monthly objective (avg)",
     kpiYtdBaseline:"2026 YTD baseline (pre-plan)", kpiRunRate:"2026 run-rate / month",
     kpiGrowth:"Required monthly growth", kpiPrice:"Avg. price / carton",
@@ -2454,7 +2454,7 @@ const I18N = {
     bilanHistory:"Transaction history", bilanNoTx:"No transactions recorded yet for this subsidiary.",
     bilanTxDelete:"Delete", txAdded:"Transaction added.", txDeleted:"Transaction deleted.",
     bilanConsolidated:"Consolidated — all subsidiaries",
-    bilanConsolidatedSub:"Same cut-off date, all in FCFA — Nigeria's Naira figures are converted at the exchange rate set on its page. Columns aren't summed into a group total (the rate is a working estimate, not an official one).",
+    bilanConsolidatedSub:"Same cut-off date, all labeled FCFA (Nigeria's figures are the same numbers as stored, not converted). Columns aren't summed into a group total.",
     bilanFillRequired:"Pick a category and enter a non-zero amount.",
     bilanEnteredBy:"by", bilanReadOnly:"You have view access here — ask your admin for data-entry access to record transactions.",
   },
@@ -2474,10 +2474,10 @@ const I18N = {
     backToOverview:"← Toutes les filiales",
     distributor:"Distributeur local", period:"Période du plan", currency:"Devise",
     fxRateLabel:"Taux de change (NGN → FCFA)", fxRateSave:"Mettre à jour le taux",
-    fxRateHint:"Les chiffres du Nigeria sont convertis en FCFA ci-dessous, pour correspondre aux autres filiales. Seuls les champs marqués (NGN) sont saisis et stockés en Naira.",
+    fxRateHint:"Ce taux sert uniquement à calculer l'équivalent FCFA affiché à côté du chiffre d'affaires distributeur (actuel), dans le tableau mensuel ci-dessous. Tous les autres chiffres de cette page affichent le montant enregistré, étiqueté FCFA, sans conversion.",
     fxRateUpdated:"Taux de change mis à jour", ngnEntryNote:"saisi en Naira",
-    mktNgnHint:"Les montants saisis ci-dessous sont en Naira ; les totaux et jauges sont convertis en FCFA.",
-    bilanNgnHint:"Les montants saisis ci-dessous sont en Naira ; le bilan ci-dessus est converti en FCFA.",
+    mktNgnHint:"Les montants saisis ci-dessous sont en Naira ; les totaux et jauges affichent le même chiffre étiqueté FCFA (sans conversion).",
+    bilanNgnHint:"Les montants saisis ci-dessous sont en Naira ; le bilan ci-dessus affiche les mêmes chiffres étiquetés FCFA (sans conversion).",
     kpiAnnualObjective:"Objectif Année 1", kpiMonthlyObjective:"Objectif mensuel (moyen)",
     kpiYtdBaseline:"Référence YTD 2026 (avant plan)", kpiRunRate:"Run-rate 2026 / mois",
     kpiGrowth:"Croissance mensuelle requise", kpiPrice:"Prix moyen / carton",
@@ -2553,7 +2553,7 @@ const I18N = {
     bilanHistory:"Historique des transactions", bilanNoTx:"Aucune transaction enregistrée pour cette filiale.",
     bilanTxDelete:"Supprimer", txAdded:"Transaction ajoutée.", txDeleted:"Transaction supprimée.",
     bilanConsolidated:"Consolidé — toutes les filiales",
-    bilanConsolidatedSub:"Même date de référence, tout en FCFA — les chiffres du Nigeria (Naira) sont convertis au taux défini sur sa page. Les colonnes ne sont pas additionnées en un total de groupe (le taux est une estimation de travail, pas un taux officiel).",
+    bilanConsolidatedSub:"Même date de référence, tout étiqueté FCFA (les chiffres du Nigeria sont les mêmes que ceux enregistrés, non convertis). Les colonnes ne sont pas additionnées en un total de groupe.",
     bilanFillRequired:"Choisissez une catégorie et saisissez un montant non nul.",
     bilanEnteredBy:"par", bilanReadOnly:"Vous avez un accès en lecture ici — demandez à votre administrateur un accès en saisie pour enregistrer des transactions.",
   }
@@ -2616,21 +2616,30 @@ const STATE = {
 
 const CURRENCY_LABEL = { NGN:'NGN', XOF:'FCFA', XAF:'FCFA' };
 
-// Nigeria is the one subsidiary whose native currency (Naira) differs from
-// everyone else's (FCFA). Every READ-ONLY / computed figure for Nigeria is
-// converted to FCFA for display using the live rate below. Anything the
-// Nigeria team actually TYPES into an input (actual revenue, marketing
-// spend, balance-sheet transactions, credit line outstanding) stays exactly
-// as entered, in Naira — those fields are marked "(NGN)" so it's
-// unambiguous which currency to type. Only the display layer converts;
-// nothing about how data is stored or summed changes. The one exception is
-// distributor revenue (current): Hussein wants that one figure visible in
-// BOTH currencies side by side, so monthlyTable() renders it as two
-// columns — an FCFA read-out plus the raw NGN entry — instead of relying
-// on this general rule alone.
+// Nigeria's stored numbers are NOT to be touched anywhere except one place.
+// Every figure on Nigeria's page — KPIs, plan columns, marketing, credit
+// line, balance sheet, overview totals — shows exactly the number it was
+// stored with, just labeled FCFA instead of NGN. toDisplayXof() below is
+// deliberately an identity function: it exists so every fmtM/fmtFull call
+// site doesn't need an NGN special case, not to convert anything.
+//
+// The ONE place real conversion math happens is the added distributor
+// revenue (current) column: monthlyTable() computes
+// Number(distRevenueActual) * ngnToXofRate() directly (see fmtMRaw below)
+// to show that one figure's FCFA equivalent next to the raw NGN entry.
+// Nothing else calls ngnToXofRate().
 function ngnToXofRate(){ return (RUNTIME.fxRates && RUNTIME.fxRates.ngnToXof) || DEFAULT_NGN_TO_XOF; }
-function toDisplayXof(v, filiale){ return (filiale && filiale.currency==='NGN') ? v*ngnToXofRate() : v; }
+function toDisplayXof(v, filiale){ return v; }
 function displayCurrency(filiale){ return (filiale && filiale.currency==='NGN') ? 'FCFA' : (CURRENCY_LABEL[filiale && filiale.currency]||(filiale && filiale.currency)); }
+// Formats an already-computed value with an explicit currency label,
+// bypassing toDisplayXof/displayCurrency — used only for the one figure
+// (distributor revenue current, FCFA column) that needs real conversion
+// math while everything else on the page stays a straight relabel.
+function fmtMRaw(v, currencyLabel, digits){
+  if(v===null||v===undefined||isNaN(v)) return t('na');
+  digits = digits===undefined?1:digits;
+  return nf(STATE.lang).format(Number((v/1e6).toFixed(digits))) + ' M ' + currencyLabel;
+}
 
 /* =========================================================================
    BALANCE SHEET (BILAN) — categories, computed from a dated transaction
@@ -3174,7 +3183,7 @@ function renderTabs(){
   return `<div class="tabs">${tabs}</div>`;
 }
 
-const BUILD_STAMP = '2026-09-03 14:29 UTC (v14-nigeria-dual-currency)';
+const BUILD_STAMP = '2026-09-03 14:41 UTC (v15-nigeria-onlyone-converts)';
 function renderFooter(){
   return `<footer class="appfoot">${t('footerNote')}<br><span style="opacity:.55;font-size:10.5px;">Build ${BUILD_STAMP}</span></footer>`;
 }
@@ -3543,7 +3552,7 @@ function monthlyTable(f){
     const cartonsActual = rec.cartonsActual!==undefined && rec.cartonsActual!==null ? rec.cartonsActual : '';
     const revenueActual = rec.revenueActual!==undefined && rec.revenueActual!==null ? rec.revenueActual : '';
     const distRevenueActual = rec.distRevenueActual!==undefined && rec.distRevenueActual!==null ? rec.distRevenueActual : '';
-    const distRevenueActualFcfa = (isNgn && distRevenueActual!=='' && !isNaN(distRevenueActual)) ? fmtM(Number(distRevenueActual), f, 1) : t('na');
+    const distRevenueActualFcfa = (isNgn && distRevenueActual!=='' && !isNaN(distRevenueActual)) ? fmtMRaw(Number(distRevenueActual)*ngnToXofRate(), 'FCFA', 1) : t('na');
     const ratio = (revenueActual!=='' && !isNaN(revenueActual)) ? Number(revenueActual)/m.revenueRodis : null;
     const status = statusForRatio(ratio);
     const cId = 'c_'+f.id+'_'+m.monthKey, rId = 'r_'+f.id+'_'+m.monthKey, dId = 'd_'+f.id+'_'+m.monthKey;
