@@ -2377,8 +2377,8 @@ const I18N = {
     fxRateLabel:"Exchange rate (NGN → FCFA)", fxRateSave:"Update rate",
     fxRateHint:"Nigeria's figures are shown converted to FCFA below, to match the other subsidiaries. Only the fields marked (NGN) are entered and stored in Naira.",
     fxRateUpdated:"Exchange rate updated", ngnEntryNote:"entered in Naira",
-    mktNgnHint:"Amounts entered below are in Naira; totals and gauges are shown in FCFA.",
-    bilanNgnHint:"Amounts entered below are in Naira; the statement above is shown in FCFA.",
+    mktNgnHint:"Amounts entered below are in Naira; totals and gauges are shown converted to FCFA.",
+    bilanNgnHint:"Amounts entered below are in Naira; the statement above is shown converted to FCFA.",
     kpiAnnualObjective:"Year‑1 objective", kpiMonthlyObjective:"Monthly objective (avg)",
     kpiYtdBaseline:"2026 YTD baseline (pre-plan)", kpiRunRate:"2026 run-rate / month",
     kpiGrowth:"Required monthly growth", kpiPrice:"Avg. price / carton",
@@ -2454,7 +2454,7 @@ const I18N = {
     bilanHistory:"Transaction history", bilanNoTx:"No transactions recorded yet for this subsidiary.",
     bilanTxDelete:"Delete", txAdded:"Transaction added.", txDeleted:"Transaction deleted.",
     bilanConsolidated:"Consolidated — all subsidiaries",
-    bilanConsolidatedSub:"Same cut-off date, all shown in FCFA (Nigeria included). Columns aren't summed into a group total.",
+    bilanConsolidatedSub:"Same cut-off date, all in FCFA — Nigeria's Naira figures are converted at the exchange rate set on its page. Columns aren't summed into a group total (the rate is a working estimate, not an official one).",
     bilanFillRequired:"Pick a category and enter a non-zero amount.",
     bilanEnteredBy:"by", bilanReadOnly:"You have view access here — ask your admin for data-entry access to record transactions.",
   },
@@ -2476,8 +2476,8 @@ const I18N = {
     fxRateLabel:"Taux de change (NGN → FCFA)", fxRateSave:"Mettre à jour le taux",
     fxRateHint:"Les chiffres du Nigeria sont convertis en FCFA ci-dessous, pour correspondre aux autres filiales. Seuls les champs marqués (NGN) sont saisis et stockés en Naira.",
     fxRateUpdated:"Taux de change mis à jour", ngnEntryNote:"saisi en Naira",
-    mktNgnHint:"Les montants saisis ci-dessous sont en Naira ; les totaux et jauges sont affichés en FCFA.",
-    bilanNgnHint:"Les montants saisis ci-dessous sont en Naira ; le bilan ci-dessus est affiché en FCFA.",
+    mktNgnHint:"Les montants saisis ci-dessous sont en Naira ; les totaux et jauges sont convertis en FCFA.",
+    bilanNgnHint:"Les montants saisis ci-dessous sont en Naira ; le bilan ci-dessus est converti en FCFA.",
     kpiAnnualObjective:"Objectif Année 1", kpiMonthlyObjective:"Objectif mensuel (moyen)",
     kpiYtdBaseline:"Référence YTD 2026 (avant plan)", kpiRunRate:"Run-rate 2026 / mois",
     kpiGrowth:"Croissance mensuelle requise", kpiPrice:"Prix moyen / carton",
@@ -2553,7 +2553,7 @@ const I18N = {
     bilanHistory:"Historique des transactions", bilanNoTx:"Aucune transaction enregistrée pour cette filiale.",
     bilanTxDelete:"Supprimer", txAdded:"Transaction ajoutée.", txDeleted:"Transaction supprimée.",
     bilanConsolidated:"Consolidé — toutes les filiales",
-    bilanConsolidatedSub:"Même date de référence, tout affiché en FCFA (Nigeria inclus). Les colonnes ne sont pas additionnées en un total de groupe.",
+    bilanConsolidatedSub:"Même date de référence, tout en FCFA — les chiffres du Nigeria (Naira) sont convertis au taux défini sur sa page. Les colonnes ne sont pas additionnées en un total de groupe (le taux est une estimation de travail, pas un taux officiel).",
     bilanFillRequired:"Choisissez une catégorie et saisissez un montant non nul.",
     bilanEnteredBy:"par", bilanReadOnly:"Vous avez un accès en lecture ici — demandez à votre administrateur un accès en saisie pour enregistrer des transactions.",
   }
@@ -2616,19 +2616,20 @@ const STATE = {
 
 const CURRENCY_LABEL = { NGN:'NGN', XOF:'FCFA', XAF:'FCFA' };
 
-// Nigeria's plan/actual figures were already correct as entered — the only
-// problem was the label ("NGN" where it should read "FCFA"). So every
-// READ-ONLY / computed figure for Nigeria is shown with the SAME number it
-// was stored with, just labeled FCFA instead of NGN — no conversion math.
-// Anything the Nigeria team actually TYPES into an input (actual revenue,
-// distributor revenue, marketing spend, balance-sheet transactions, credit
-// line outstanding) is unaffected either way — those fields were never
-// converted, and stay marked "(NGN)" so it's unambiguous which currency to
-// type. (An earlier build multiplied these figures by a Naira→FCFA rate;
-// that conversion has been removed per Hussein's correction — the FX-rate
-// editor that drove it is no longer shown.)
+// Nigeria is the one subsidiary whose native currency (Naira) differs from
+// everyone else's (FCFA). Every READ-ONLY / computed figure for Nigeria is
+// converted to FCFA for display using the live rate below. Anything the
+// Nigeria team actually TYPES into an input (actual revenue, marketing
+// spend, balance-sheet transactions, credit line outstanding) stays exactly
+// as entered, in Naira — those fields are marked "(NGN)" so it's
+// unambiguous which currency to type. Only the display layer converts;
+// nothing about how data is stored or summed changes. The one exception is
+// distributor revenue (current): Hussein wants that one figure visible in
+// BOTH currencies side by side, so monthlyTable() renders it as two
+// columns — an FCFA read-out plus the raw NGN entry — instead of relying
+// on this general rule alone.
 function ngnToXofRate(){ return (RUNTIME.fxRates && RUNTIME.fxRates.ngnToXof) || DEFAULT_NGN_TO_XOF; }
-function toDisplayXof(v, filiale){ return v; }
+function toDisplayXof(v, filiale){ return (filiale && filiale.currency==='NGN') ? v*ngnToXofRate() : v; }
 function displayCurrency(filiale){ return (filiale && filiale.currency==='NGN') ? 'FCFA' : (CURRENCY_LABEL[filiale && filiale.currency]||(filiale && filiale.currency)); }
 
 /* =========================================================================
@@ -3173,7 +3174,7 @@ function renderTabs(){
   return `<div class="tabs">${tabs}</div>`;
 }
 
-const BUILD_STAMP = '2026-09-03 14:11 UTC (v13-nigeria-relabel)';
+const BUILD_STAMP = '2026-09-03 14:29 UTC (v14-nigeria-dual-currency)';
 function renderFooter(){
   return `<footer class="appfoot">${t('footerNote')}<br><span style="opacity:.55;font-size:10.5px;">Build ${BUILD_STAMP}</span></footer>`;
 }
@@ -3397,6 +3398,40 @@ function monthlyChart(f){
 </script>
 
 <script>
+/* ---------- Nigeria FX rate panel (Naira → FCFA, admin-editable) ---------- */
+function fxRatePanel(f){
+  const rate = ngnToXofRate();
+  const dis = isAdmin() ? '' : 'disabled';
+  return `
+  <div class="card pad" style="max-width:680px;margin:14px 0 0;display:flex;gap:20px;flex-wrap:wrap;align-items:flex-end;">
+    <div>
+      <label class="field-label">${t('fxRateLabel')}</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:13px;color:var(--ink-mute);">1 NGN =</span>
+        <input id="fx-rate" class="cell-input" style="width:110px" type="number" step="0.0001" value="${rate}" ${dis}/>
+        <span style="font-size:13px;color:var(--ink-mute);">FCFA</span>
+        <button class="save-btn" ${dis} onclick="onSaveFxRate('${f.id}')">${t('fxRateSave')}</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--ink-mute);max-width:420px;">${t('fxRateHint')}</div>
+  </div>`;
+}
+function onSaveFxRate(fid){
+  const val = document.getElementById('fx-rate').value;
+  saveFxRate(fid, val);
+}
+window.onSaveFxRate = onSaveFxRate;
+async function saveFxRate(fid, val){
+  if(!isAdmin()) return;
+  const rate = Number(val);
+  if(!rate || !isFinite(rate) || rate<=0) return;
+  RUNTIME.fxRates = RUNTIME.fxRates || {};
+  RUNTIME.fxRates.ngnToXof = rate;
+  pushActivity('fxRate', t('fxRateUpdated')+': 1 NGN = '+rate+' FCFA');
+  render();
+  await persist(fid);
+}
+
 /* =========================================================================
    FILIALE DETAIL PAGE
    ========================================================================= */
@@ -3414,8 +3449,10 @@ function renderFilialeDetail(f){
     <div class="badge-row">
       <span class="pill ${p.status}"><span class="dot ${p.status}"></span>${statusLabel(p.status)}</span>
       <span class="badge">${CURRENCY_LABEL[f.currency]||f.currency} · ${f.currencyNote}</span>
+      ${f.currency==='NGN' ? `<span class="badge">1 NGN = ${ngnToXofRate()} FCFA</span>` : ''}
     </div>
   </div>
+  ${f.currency==='NGN' ? fxRatePanel(f) : ''}
 
   <div class="grid kpi-row">
     <div class="card kpi"><div class="label">${t('kpiAnnualObjective')}</div><div class="value num">${fmtM(f.objectiveAnnual,f)}</div><div class="sub">${fmtM(f.objectiveMonthly,f)}/${STATE.lang==='fr'?'mois':'mo'}</div></div>
@@ -3489,10 +3526,16 @@ function renderFilialeDetail(f){
 function monthlyTable(f){
   const hasCartons = f.monthly[0].cartons !== null && f.monthly[0].cartons !== undefined;
   const dis = canEdit(f.id) ? '' : 'disabled';
-  const ngnSuffix = f.currency==='NGN' ? ' (NGN)' : '';
+  const isNgn = f.currency === 'NGN';
+  // Every other actual is a single native-currency input. Distributor
+  // revenue (current) is the one figure Hussein wants visible in BOTH
+  // currencies for Nigeria: a read-only FCFA read-out (the NGN entry
+  // converted at the live rate) plus the raw NGN entry itself.
   let head = `<tr><th>${t('tblMonth')}</th>`;
   if(hasCartons) head += `<th>${t('tblCartonsPlan')}</th><th>${t('tblCartonsActual')}</th>`;
-  head += `<th>${t('tblRevPlan')}</th><th>${t('tblRevActual')}${ngnSuffix}</th><th>${t('tblDistRevPlan')}</th><th>${t('tblDistRevActual')}${ngnSuffix}</th><th>${t('tblAttain')}</th><th>${t('tblStatus')}</th><th></th></tr>`;
+  head += `<th>${t('tblRevPlan')}</th><th>${t('tblRevActual')}${isNgn?' (NGN)':''}</th><th>${t('tblDistRevPlan')}</th>`;
+  head += isNgn ? `<th>${t('tblDistRevActual')} (FCFA)</th><th>${t('tblDistRevActual')} (NGN)</th>` : `<th>${t('tblDistRevActual')}</th>`;
+  head += `<th>${t('tblAttain')}</th><th>${t('tblStatus')}</th><th></th></tr>`;
 
   let rows='';
   f.monthly.forEach(m=>{
@@ -3500,6 +3543,7 @@ function monthlyTable(f){
     const cartonsActual = rec.cartonsActual!==undefined && rec.cartonsActual!==null ? rec.cartonsActual : '';
     const revenueActual = rec.revenueActual!==undefined && rec.revenueActual!==null ? rec.revenueActual : '';
     const distRevenueActual = rec.distRevenueActual!==undefined && rec.distRevenueActual!==null ? rec.distRevenueActual : '';
+    const distRevenueActualFcfa = (isNgn && distRevenueActual!=='' && !isNaN(distRevenueActual)) ? fmtM(Number(distRevenueActual), f, 1) : t('na');
     const ratio = (revenueActual!=='' && !isNaN(revenueActual)) ? Number(revenueActual)/m.revenueRodis : null;
     const status = statusForRatio(ratio);
     const cId = 'c_'+f.id+'_'+m.monthKey, rId = 'r_'+f.id+'_'+m.monthKey, dId = 'd_'+f.id+'_'+m.monthKey;
@@ -3509,6 +3553,7 @@ function monthlyTable(f){
       <td class="num">${fmtM(m.revenueRodis,f,1)}</td>
       <td><input id="${rId}" class="cell-input" type="number" value="${revenueActual}" ${dis} placeholder="${t('na')}"/></td>
       <td class="num">${fmtM(m.revenueDistributor,f,1)}</td>
+      ${isNgn ? `<td class="num">${distRevenueActualFcfa}</td>` : ''}
       <td><input id="${dId}" class="cell-input" type="number" value="${distRevenueActual}" ${dis} placeholder="${t('na')}"/></td>
       <td class="num">${ratio!==null?fmtPct(ratio):t('na')}</td>
       <td><span class="pill ${status}"><span class="dot ${status}"></span>${statusLabel(status)}</span></td>
@@ -3522,6 +3567,7 @@ function monthlyTable(f){
     ${hasCartons ? `<td class="num">${fmtInt(tot.cartons)}</td><td></td>` : ''}
     <td class="num">${fmtM(tot.revenueRodis,f,1)}</td><td></td>
     <td class="num">${fmtM(tot.revenueDistributor,f,1)}</td>
+    ${isNgn ? `<td></td>` : ''}
     <td></td>
     <td></td><td></td><td></td>
   </tr>`;
