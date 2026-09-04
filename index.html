@@ -2439,7 +2439,7 @@ const I18N = {
     usernameTaken:"That username is already taken.",
     fillRequired:"Username and password are required.",
     tabBilan:"Balance Sheet",
-    bilanTitle:"Balance Sheet", bilanSub:"Assets, liabilities and net position for the selected subsidiary, calculated automatically from the transactions below as of your chosen date.",
+    bilanTitle:"Balance Sheet", bilanSub:"Assets, liabilities and net position for the selected subsidiary, as of your chosen date. Each category shows its most recently entered value as of that date — a snapshot, not a running sum of every entry ever recorded.",
     bilanCountry:"Subsidiary", bilanCutoff:"As of",
     bilanAssets:"Assets", bilanLiabilities:"Liabilities",
     bilanTotalAssets:"Total Assets", bilanTotalLiabilities:"Total Liabilities",
@@ -2450,14 +2450,14 @@ const I18N = {
     bilanRodisPayable:"Rodis payable", bilanOtherPayables:"Other supplier payables",
     bilanOtherAssets:"Other assets", bilanOtherLiabilities:"Other liabilities",
     bilanAddTx:"Add a transaction", bilanTxDate:"Date", bilanTxCategory:"Category",
-    bilanTxAmount:"Amount (negative = decrease)", bilanTxNote:"Note", bilanTxAdd:"Add",
+    bilanTxAmount:"Balance as of this date", bilanTxNote:"Note", bilanTxAdd:"Add",
     bilanHistory:"Transaction history", bilanNoTx:"No transactions recorded yet for this subsidiary.",
     bilanTxDelete:"Delete", txAdded:"Transaction added.", txDeleted:"Transaction deleted.",
     bilanConsolidated:"Consolidated — all subsidiaries",
     bilanConsolidatedSub:"Same cut-off date, all labeled FCFA (Nigeria's figures are the same numbers as stored, not converted). Columns aren't summed into a group total.",
     bilanFillRequired:"Pick a category and enter a non-zero amount.",
     bilanEnteredBy:"by", bilanReadOnly:"You have view access here — ask your admin for data-entry access to record transactions.",
-    dailyExpensesTitle:"Daily expenses", dailyExpensesSub:"Log day-to-day operating expenses (fuel, transport, repairs, sundry, etc.) — each one is recorded as a cash outflow and reduces the cash balance above as of its date.",
+    dailyExpensesTitle:"Daily expenses", dailyExpensesSub:"Log day-to-day operating expenses (fuel, transport, repairs, sundry, etc.) here for tracking and reporting. This is a separate running record — it is not added into the Cash figure in the statement above; enter your actual cash balance as of each date using the transaction form instead.",
     dailyExpLabel:"Description", dailyExpPlaceholder:"e.g. Fuel, transport, repairs",
     dailyExpAmount:"Amount", dailyExpAdd:"Add expense", dailyExpTotal:"Total expenses (as of cutoff)",
     dailyExpHistory:"Expense history", dailyExpNoEntries:"No expenses recorded yet for this subsidiary.",
@@ -2544,7 +2544,7 @@ const I18N = {
     usernameTaken:"Cet identifiant est déjà utilisé.",
     fillRequired:"L'identifiant et le mot de passe sont obligatoires.",
     tabBilan:"Bilan",
-    bilanTitle:"Bilan", bilanSub:"Actif, passif et position nette de la filiale sélectionnée, calculés automatiquement à partir des transactions ci-dessous à la date choisie.",
+    bilanTitle:"Bilan", bilanSub:"Actif, passif et position nette de la filiale sélectionnée, à la date choisie. Chaque catégorie affiche sa valeur la plus récemment saisie à cette date — un instantané, pas une somme cumulée de toutes les saisies.",
     bilanCountry:"Filiale", bilanCutoff:"À la date du",
     bilanAssets:"Actif", bilanLiabilities:"Passif",
     bilanTotalAssets:"Total actif", bilanTotalLiabilities:"Total passif",
@@ -2555,14 +2555,14 @@ const I18N = {
     bilanRodisPayable:"Dû à Rodis", bilanOtherPayables:"Autres fournisseurs à payer",
     bilanOtherAssets:"Autres actifs", bilanOtherLiabilities:"Autres passifs",
     bilanAddTx:"Ajouter une transaction", bilanTxDate:"Date", bilanTxCategory:"Catégorie",
-    bilanTxAmount:"Montant (négatif = diminution)", bilanTxNote:"Note", bilanTxAdd:"Ajouter",
+    bilanTxAmount:"Solde à cette date", bilanTxNote:"Note", bilanTxAdd:"Ajouter",
     bilanHistory:"Historique des transactions", bilanNoTx:"Aucune transaction enregistrée pour cette filiale.",
     bilanTxDelete:"Supprimer", txAdded:"Transaction ajoutée.", txDeleted:"Transaction supprimée.",
     bilanConsolidated:"Consolidé — toutes les filiales",
     bilanConsolidatedSub:"Même date de référence, tout étiqueté FCFA (les chiffres du Nigeria sont les mêmes que ceux enregistrés, non convertis). Les colonnes ne sont pas additionnées en un total de groupe.",
     bilanFillRequired:"Choisissez une catégorie et saisissez un montant non nul.",
     bilanEnteredBy:"par", bilanReadOnly:"Vous avez un accès en lecture ici — demandez à votre administrateur un accès en saisie pour enregistrer des transactions.",
-    dailyExpensesTitle:"Dépenses courantes", dailyExpensesSub:"Enregistrez les dépenses de fonctionnement au fil de l'eau (carburant, transport, réparations, divers, etc.) — chacune est comptée comme une sortie de trésorerie et réduit le solde de caisse ci-dessus à sa date.",
+    dailyExpensesTitle:"Dépenses courantes", dailyExpensesSub:"Enregistrez ici les dépenses de fonctionnement au fil de l'eau (carburant, transport, réparations, divers, etc.) à des fins de suivi. Il s'agit d'un registre distinct — il n'est pas ajouté au solde de caisse du bilan ci-dessus ; saisissez votre solde de caisse réel à chaque date via le formulaire de transaction.",
     dailyExpLabel:"Description", dailyExpPlaceholder:"ex. Carburant, transport, réparations",
     dailyExpAmount:"Montant", dailyExpAdd:"Ajouter la dépense", dailyExpTotal:"Total des dépenses (à la date de référence)",
     dailyExpHistory:"Historique des dépenses", dailyExpNoEntries:"Aucune dépense enregistrée pour cette filiale.",
@@ -2768,10 +2768,24 @@ function creditStatus(rate){
 function bilanTxList(filialeId){
   return (RUNTIME.bilanTx && RUNTIME.bilanTx[filialeId]) || [];
 }
+/* The Balance Sheet is a SNAPSHOT, not a running ledger total: per
+   Hussein's correction, each category shows only the most recent entry
+   dated on or before the cutoff, never a sum of everything ever entered
+   for that category. Older entries stay fully visible in the history
+   table (bilanHistoryTable) for record-keeping, they just don't get
+   added into the current total any more. Daily-expense entries
+   (kind:'expense') are excluded here entirely — per Hussein's choice,
+   they're a separate tracked record (see dailyExpenseList/
+   dailyExpenseTotal below) and never feed into this category balance. */
 function bilanBalance(filialeId, category, cutoffDate){
-  return bilanTxList(filialeId)
-    .filter(tx=>tx.category===category && tx.date && tx.date<=cutoffDate)
-    .reduce((sum,tx)=>sum+(Number(tx.amount)||0), 0);
+  const candidates = bilanTxList(filialeId)
+    .filter(tx=>tx.category===category && tx.kind!=='expense' && tx.date && tx.date<=cutoffDate);
+  if(!candidates.length) return 0;
+  candidates.sort((a,b)=>{
+    if(a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return String(a.ts||'') < String(b.ts||'') ? -1 : 1;
+  });
+  return Number(candidates[candidates.length-1].amount) || 0;
 }
 function bilanSnapshot(filialeId, cutoffDate){
   const bal = {};
@@ -2783,11 +2797,12 @@ function bilanSnapshot(filialeId, cutoffDate){
   });
 }
 
-/* Daily expenses are just bilanTx entries tagged kind:'expense', always
-   category:'cash' with a negative amount — so they're already counted in
-   the cash balance above via bilanBalance/bilanSnapshot. These two
-   helpers only filter/sum that same array for the dedicated expense
-   history + running-total UI; they don't add a new balance category. */
+/* Daily expenses are bilanTx entries tagged kind:'expense', always
+   category:'cash' with a negative amount. Per Hussein's explicit choice,
+   these stay a SEPARATE tracked record — a running list + total for
+   reference/reporting — and are deliberately excluded from
+   bilanBalance/bilanSnapshot above, so they never reduce the Balance
+   Sheet's own Cash figure. */
 function dailyExpenseList(filialeId){
   return bilanTxList(filialeId).filter(tx=>tx.kind==='expense').slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 }
@@ -3232,7 +3247,7 @@ function renderTabs(){
   return `<div class="tabs">${tabs}</div>`;
 }
 
-const BUILD_STAMP = '2026-09-03 16:06 UTC (v16-daily-expenses)';
+const BUILD_STAMP = '2026-09-04 09:51 UTC (v17-bilan-snapshot)';
 function renderFooter(){
   return `<footer class="appfoot">${t('footerNote')}<br><span style="opacity:.55;font-size:10.5px;">Build ${BUILD_STAMP}</span></footer>`;
 }
